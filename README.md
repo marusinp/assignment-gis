@@ -20,12 +20,12 @@ Build a map-based application, which lets the user see geo-based data on a map a
 
 
 
-**Application description**: Web-based application for demonstrating advanced geospatial queries (result visualisation included).
+**Application description**: Web-based application demonstrating advanced geospatial queries (result visualisation included).
 
-We focused on queries, that are somehow related to student's everyday life in the big city:
+We focused on queries somehow related to student's everyday life in the big city:
 
-1. Find all near-by cafés :coffee:️ and/or restaurants :ramen: (based either on current position or position chosen by user itself).
-2. Find shortest path from dorm to work that includes chosen cafe (because mornings are tough and cocaine illegal.)
+1. Find all near-by cafés :coffee: and/or restaurants :ramen: (based either on current position or position chosen by user itself).
+2. Find shortest path from dorm to work that includes chosen cafe (mornings are tough and cocaine illegal :pig_nose: ).
 3. Earthquake heatmap for Italy (part of everyday life in Italy, sorta).
 
 // other usecases can appear occasionally :bust_in_silhouette: :eyes: 
