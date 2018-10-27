@@ -18,10 +18,24 @@ Build a map-based application, which lets the user see geo-based data on a map a
 
 ## My project
 
-Fill in (either in English, or in Slovak):
 
-**Application description**: `<fill in>`
 
-**Data source**: `<fill in>`
+**Application description**: Web-based application for demonstrating advanced geospatial queries (result visualisation included).
 
-**Technologies used**: `<fill in>`
+We focused on queries, that are somehow related to student's everyday life in the big city:
+
+1. Find all near-by cafés :coffee:️ and/or restaurants :ramen: (based either on current position or position chosen by user itself).
+2. Find shortest path from dorm to work that includes chosen cafe (because mornings are tough and cocaine illegal.)
+3. Earthquake heatmap for Italy (part of everyday life in Italy, sorta).
+
+// other usecases can appear occasionally :bust_in_silhouette: :eyes: 
+
+**Data source**: [Kaggle](https://www.kaggle.com/)
+
+**Technologies used**:
+
+* PgRouting
+* Flask
+* JS, JQuery, AJAX
+* Mapbox GL JS
+ 
