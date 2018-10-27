@@ -1,0 +1,97 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8"/>
+    <title>(PDT Assignment (Marusin)</title>
+    <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no'/>
+ <script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.50.0/mapbox-gl.css' rel='stylesheet' />
+    <link rel="stylesheet" href="css/style.css">
+    <!--<style>-->
+
+    <!--#map {-->
+    <!--position: absolute;-->
+    <!--margin-left: 190px;-->
+    <!--border-left: 1px solid gray;-->
+    <!--padding: 50em;-->
+    <!--overflow: hidden;-->
+    <!--}-->
+
+
+    <!--div.container {-->
+    <!--width: 100%;-->
+    <!--border: 1px solid gray;-->
+    <!--}-->
+
+    <!--header, footer {-->
+    <!--padding: 1em;-->
+    <!--color: white;-->
+    <!--background-color: black;-->
+    <!--clear: left;-->
+    <!--text-align: center;-->
+    <!--}-->
+
+    <!--nav {-->
+    <!--float: left;-->
+    <!--max-width: 180px;-->
+    <!--margin: 0;-->
+    <!--padding: 1em;-->
+    <!--}-->
+
+    <!--nav ul {-->
+    <!--list-style-type: none;-->
+    <!--padding: 0;-->
+    <!--}-->
+
+    <!--nav ul a {-->
+    <!--text-decoration: none;-->
+    <!--}-->
+
+    <!--.legend label,-->
+    <!--.legend span {-->
+    <!--display: block;-->
+    <!--float: left;-->
+    <!--height: 15px;-->
+    <!--width: 80%;-->
+    <!--text-align: center;-->
+    <!--font-size: 9px;-->
+    <!--color: #808080;-->
+    <!--}-->
+    <!--</style>-->
+    <script
+            src="https://code.jquery.com/jquery-3.1.1.min.js"
+            integrity="sha256-hVVnYaiADRTO2PzUGmuLJr8BLUSjGIZsDYGmIJLv2b8="
+            crossorigin="anonymous">
+    </script>
+</head>
+<body>
+
+<div id="buttons" class="btn-group">
+
+    <div class="jumbotron">
+        <h2>Bicycle route app</h2>
+        <p class="lead"></p>
+        <!--<p><a class="btn btn-lg btn-success" href="showSignUp" role="button">Sign up today</a>
+        </p>-->
+    </div>
+
+    <!--<button type="button" class="btn btn-primary">Show something</button>-->
+    <form action="." method="POST">
+        <input type="text" id="inputSearch" class="form-control" name="fname" required autofocus><br>
+            <input type="submit" id="btnSend" class="btn btn-primary" value="Search" onclick="radiusJS()"> <br><br>
+
+            <input id="btnBike" class="btn btn-primary btn-sm" value="Distance">
+            <input id="btnRoute" class="btn btn-success btn-sm" value="My route">
+
+    </form>
+
+    <div id="slider">
+        <div id="custom-handle" class="ui-slider-handle"></div>
+    </div>
+</div>
+
+<div id='map'></div>
+<script src="js/app_logic.js"></script>
+</body>
+</html>
+
