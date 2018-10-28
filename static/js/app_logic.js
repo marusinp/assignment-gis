@@ -43,7 +43,7 @@ function initMap(lat, lng, zoom) {
         container: 'map', // container id
         style: 'mapbox://styles/mapbox/streets-v9', // stylesheet location
         center: [lng, lat], // starting position [lng, lat]
-        zoom: 5// starting zoom
+        zoom: 10// starting zoom
     });
 
     map.addControl(new mapboxgl.GeolocateControl({
@@ -129,118 +129,172 @@ function radiusJS() {
     $.ajax({
         url: "/radius",
         data: requestData,
-        type: "POST"
+        datatype: 'json',
+        type: "GET"
     }).done(function (data) {
 
-        // var geojson = JSON.parse(data);
-        // console.log(JSON.stringify(geojson));
-        //
-        // geojson.features.forEach(function (marker) {
-        //
-        //     // create a HTML element for each feature
-        //     var el = document.createElement('div');
-        //     el.className = 'marker';
-        //
-        //     // make a marker for each feature and add to the map
-        //     new mapboxgl.Marker(el)
-        //         .setLngLat(marker.geometry.coordinates)
-        //         .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
-        //             .setHTML(fillPopup(marker.properties)))
-        //         .addTo(map);
-        // });
-        //
-        // map.addSource("polygon", createGeoJSONCircle([lng, lat], 0.5));
-        //
-        // map.addLayer({
-        //     "id": "polygon",
-        //     "type": "fill",
-        //     "source": "polygon",
-        //     "layout": {},
-        //     "paint": {
-        //         "fill-color": "blue",
-        //         "fill-opacity": 0.6
-        //     }
-        // });
+        var geojson = JSON.parse(data);
+        console.log(JSON.stringify(geojson));
+
+        geojson.features.forEach(function (marker) {
+
+            // create a HTML element for each feature
+            var el = document.createElement('div');
+            el.className = 'marker';
+
+            // make a marker for each feature and add to the map
+            new mapboxgl.Marker(el)
+                .setLngLat(marker.geometry.coordinates)
+                .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
+                    .setHTML(fillPopup(marker.properties)))
+                .addTo(map);
+        });
+
+        map.addSource("polygon", createGeoJSONCircle([lng, lat], 0.5));
+
+        map.addLayer({
+            "id": "polygon",
+            "type": "fill",
+            "source": "polygon",
+            "layout": {},
+            "paint": {
+                "fill-color": "blue",
+                "fill-opacity": 0.6
+            }
+        });
+
+
+    });
+
+
+}
+
+function shortestPathsJS() {
+    var requestData = {
+        "lat": lat,
+        "lng": lng,
+        "radius": 1000,
+    };
+    console.log("DATA  REQ " + JSON.stringify(requestData));
+    $.ajax({
+        url: "/shortest_paths",
+        data: requestData,
+        type: "GET"
+    }).done(function (data) {
 
 
         var geojson = JSON.parse(data);
         console.log(JSON.stringify(geojson));
 
- map.addSource('trees', {
-        type: 'geojson',
-        data: geojson,
+        map.addSource('trees', {
+            type: 'geojson',
+            data: geojson,
+        });
+
+
+        map.addLayer({
+            id: 'trees-heat',
+            type: 'heatmap',
+            source: 'trees',
+            maxzoom: 24,
+            paint: {
+                // increase weight as diameter breast height increases
+                'heatmap-weight': {
+                    property: 'magnitude',
+                    type: 'exponential',
+                    stops: [
+                        [0, 0],
+                        [6.5, 1]
+                    ]
+                },
+                // increase intensity as zoom level increases
+                'heatmap-intensity': {
+                    stops: [
+                        [11, 1],
+                        [15, 3]
+                    ]
+                },
+                // assign color values be applied to points depending on their density
+                'heatmap-color': [
+                    'interpolate',
+                    ['linear'],
+                    ['heatmap-density'],
+                    0, 'rgba(236,222,239,0)',
+                    0.2, 'blue',
+                    0.4, 'yellow',
+                    0.6, 'orange',
+                    0.8, 'red'
+                ],
+                // increase radius as zoom increases
+                'heatmap-radius': {
+                    stops: [
+                        [11, 15],
+                        [15, 20]
+                    ]
+                },
+                // decrease opacity to transition into the circle layer
+                'heatmap-opacity': {
+                    default: 1,
+                    stops: [
+                        [14, 1],
+                        [15, 0]
+                    ]
+                },
+            }
+        }, 'waterway-label');
+
+        map.addLayer({
+            id: 'trees-point',
+            type: 'circle',
+            source: 'trees',
+            minzoom: 14,
+            paint: {
+                // increase the radius of the circle as the zoom level and dbh value increases
+                'circle-radius': {
+                    property: 'magnitude',
+                    type: 'exponential',
+                    stops: [
+                        [{zoom: 15, value: 1}, 5],
+                        [{zoom: 15, value: 62}, 10],
+                        [{zoom: 22, value: 1}, 20],
+                        [{zoom: 22, value: 62}, 50],
+                    ]
+                },
+                'circle-color': {
+                    property: 'magnitude',
+                    type: 'exponential',
+                    stops: [
+                        [0, 'rgba(236,222,239,0)'],
+                        [1, 'blue'],
+                        [2, 'yellow'],
+                        [3, 'orange'],
+                        [4, 'red'],
+                        [5, 'darkred']
+                        // [6, 'rgb(1,108,89)']
+                    ]
+                },
+                'circle-stroke-color': 'white',
+                'circle-stroke-width': 1,
+                'circle-opacity': {
+                    stops: [
+                        [14, 0],
+                        [15, 1]
+                    ]
+                }
+            }
+        }, 'waterway-label');
+
+
+        map.on('click', 'trees-point', function (e) {
+            new mapboxgl.Popup()
+                .setLngLat(e.features[0].geometry.coordinates)
+                .setHTML('<b>Magnitude:</b> ' + e.features[0].properties.magnitude)
+                .addTo(map);
+        });
     });
-
-
-    map.addLayer({
-        id: 'trees-heat',
-        type: 'heatmap',
-        source: 'trees',
-        maxzoom: 24,
-        paint: {
-            // increase weight as diameter breast height increases
-            'heatmap-weight': {
-                property: 'magnitude',
-                type: 'exponential',
-                stops: [
-                    [0, 0],
-                    [6.5, 1]
-                ]
-            },
-            // increase intensity as zoom level increases
-            'heatmap-intensity': {
-                stops: [
-                    [11, 1],
-                    [17, 3]
-                ]
-            },
-            // assign color values be applied to points depending on their density
-            'heatmap-color': [
-                'interpolate',
-                ['linear'],
-                ['heatmap-density'],
-                0, 'rgba(236,222,239,0)',
-                0.2, 'rgb(208,209,230)',
-                0.4, 'rgb(166,189,219)',
-                0.6, 'rgb(103,169,207)',
-                0.8, 'rgb(28,144,153)'
-            ],
-            // increase radius as zoom increases
-            'heatmap-radius': {
-                stops: [
-                    [11, 30],
-                    [15, 45]
-                ]
-            },
-            // decrease opacity to transition into the circle layer
-            'heatmap-opacity': {
-                default: 1,
-                stops: [
-                    [14, 1],
-                    [19, 0]
-                ]
-            },
-        }
-    }, 'waterway-label');
-
-    map.on('click', 'trees-point', function (e) {
-        new mapboxgl.Popup()
-            .setLngLat(e.features[0].geometry.coordinates)
-            .setHTML('<b>DBH:</b> ' + e.features[0].properties.magnitude)
-            .addTo(map);
-    });
-        // var jsondata = JSON.parse(data);
-        // console.log(jsondata[0]);
-        // L.geoJSON(jsondata[0][0].features).addTo(map);
-        // console.log(JSON.stringify(jsondata.features));
-    });
-
-
 
 
 }
-
-
 
 
 // $("#btnBike").click(function (event) {

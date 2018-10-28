@@ -28,23 +28,27 @@ def static_file(path):
 	return app.send_static_file(path)
 
 
-@app.route('/radius', methods=['GET', 'POST'])
+@app.route('/radius', methods=['GET'])
 def radius():
+	lat = request.args.get('lat')
+	lng = request.args.get('lng')
+	radius = request.args.get('radius')
 
-	lat = request.form.get('lat')
-	lng = request.form.get('lng')
-	radius = request.form.get('radius')
-	# logger.debug("lat: " + str(lat))
+	logger.debug("lat: " + str(lat))
 
 	cur = connect_to_db()
 
 	cur.execute("""
-	SELECT jsonb_build_object(
+	with poi as (
+	SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
+    where amenity = 'cafe'
+    and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint({lng}, {lat}), 4326)::geography, {radius})
+)
+SELECT jsonb_build_object(
   'type',     'FeatureCollection',
   'features', jsonb_agg(feature)
-)
-FROM (
-  SELECT jsonb_build_object(
+) from (
+SELECT jsonb_build_object(
     'type',       'Feature',
     'id',         osm_id,
     'geometry',   ST_AsGeoJSON(ST_Transform(way,4326))::jsonb,
@@ -61,13 +65,37 @@ FROM (
     	'internet_access', internet_access
   ))
   ) AS feature
-  FROM (
-    SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
-    where amenity = 'cafe'
-    and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint({lng}, {lat}), 4326)::geography, {radius})
-  ) inputs
-) features;
+  FROM poi
+  ) features;
 """.format(lat=lat, lng=lng, radius=radius))
+
+	rows = cur.fetchall()
+	return json.dumps(rows[0][0])
+
+
+@app.route('/shortest_paths', methods=['GET'])
+def shortest_paths():
+	cur = connect_to_db()
+
+	cur.execute("""
+		SELECT jsonb_build_object(
+  'type',     'FeatureCollection',
+  'features', jsonb_agg(feature)
+)
+FROM (
+  SELECT jsonb_build_object(
+    'type',       'Feature',
+    'geometry',   ST_AsGeoJSON(ST_Transform(geom,4326))::jsonb,
+    'properties', jsonb_strip_nulls(jsonb_build_object(
+   		'magnitude', magnitude
+
+  ))
+  ) AS feature
+  FROM (
+    SELECT magnitude,geom FROM italy
+  ) inputs
+) features
+	""")
 
 	rows = cur.fetchall()
 	return json.dumps(rows[0][0])
