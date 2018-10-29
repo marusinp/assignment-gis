@@ -297,6 +297,7 @@ function shortestPathsJS() {
 }
 
 
+
 // $("#btnBike").click(function (event) {
 //     event.preventDefault();
 //     gjsonLayer.loadURL('/map/radius?distance=' + $("#custom-handle").html() + '&lat=' + lat + '&lng=' + lng);

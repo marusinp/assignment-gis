@@ -104,7 +104,7 @@ select row_to_json(fc) FROM ( SELECT 'FeatureCollection' As type, array_to_json(
 select ways_vertices_pgr.id as vertex_id,planet_osm_point.amenity, planet_osm_point.osm_id, planet_osm_point.name
 from planet_osm_point
        LEFT JOIN ways_vertices_pgr ON (planet_osm_point.osm_id = ways_vertices_pgr.osm_id)
-where ways_vertices_pgr.id notnull and planet_osm_point.amenity NOTNULL;
+ where planet_osm_point.name <> '' and ways_vertices_pgr.id notnull and planet_osm_point.amenity NOTNULL;
 
 SELECT d.seq, d.node, d.edge, d.cost, e.geom AS edge_geom
 FROM pgr_dijkstra(
@@ -168,3 +168,96 @@ FROM (
     SELECT magnitude,geom FROM italy
   ) inputs
 ) features;
+
+
+-- with square_point as (
+select osm_id,name, ST_Transform(way,4326) from planet_osm_polygon as polygon
+
+where lower(name) like 'amer%námestie%' limit 1;
+
+----
+
+select ways.gid as edge_id, polygon.osm_id,polygon.amenity, polygon.name
+from planet_osm_polygon as polygon
+JOIN ways ON (polygon.osm_id = ways.osm_id);
+
+----
+
+select * from planet_osm_point where osm_id = 2001099710;
+
+-----
+select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where lower(name) = 'yeme' limit 1;
+----
+
+
+select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where vertices.id = 95222;
+
+----
+with src as (
+select vertices.id as src_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where lower(name) = 'santal' limit 1
+),
+dst as (
+select vertices.id as dst_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where lower(name) = 'lekáreň sv. michala' limit 1
+)
+SELECT * from pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+                        (select src_id from src),
+                        (select dst_id from dst),
+                        directed := false,
+                        ) src_dst_dij
+        JOIN ways ON (src_dst_dij.edge = ways.gid)
+        order by src_dst_dij.seq;
+
+----
+
+
+
+
+SELECT ST_AsGeoJSON(ST_UNION(b.the_geom))
+-- SELECT seq, edge, rpad(b.the_geom::text,60,' ') AS "the_geom (truncated)"
+FROM pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+                  103675, 95222,
+                   directed := false
+         ) a
+      JOIN ways b ON (a.edge = b.gid);
+
+      ----
+
+
+SELECT x.path_id, x.path_seq, COALESCE(s.osm_id|| ' - ' || t.osm_id, 'Total Trip') as route,
+CASE
+    WHEN edge = -1 THEN agg_cost ELSE NULL END AS "total_cost(distance)"
+FROM
+    pgr_ksp(
+        'SELECT gid as id, source, target, length AS cost FROM ways',
+        (103675),
+        (95222),
+        1,
+        directed := FALSE
+    ) as x
+    LEFT JOIN ways AS r ON x.edge = r.gid
+    LEFT JOIN ways_vertices_pgr AS s ON r.source = s.id
+    LEFT JOIN ways_vertices_pgr AS t ON r.target = t.id
+
+ORDER BY
+    x.path_id, x.path_seq;
+
+----
+
+
+
