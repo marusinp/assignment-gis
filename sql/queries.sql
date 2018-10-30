@@ -173,7 +173,7 @@ FROM (
 -- with square_point as (
 select osm_id,name, ST_Transform(way,4326) from planet_osm_polygon as polygon
 
-where lower(name) like 'amer%námestie%' limit 1;
+where lower(name) like '%námestie%';
 
 ----
 
@@ -196,7 +196,7 @@ where lower(name) = 'yeme' limit 1;
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-where vertices.id = 95222;
+where point.name like '%námestie%';
 
 ----
 with src as (
@@ -217,8 +217,8 @@ from planet_osm_point as point
 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
 where lower(name) = 'slovenská sporiteľňa' limit 1
 )
-SELECT ST_AsGeoJSON(ST_UNION(ways.the_geom)) from pgr_dijkstra('
-                SELECT gid as id, source, target,
+SELECT ST_AsGeoJSON(ST_UNION(ways.the_geom)) from pgr_dijkstra(
+								'SELECT gid as id, source, target,
                         length as cost FROM ways',
                         (select src_id from src),
                         (select stop_id from stop),

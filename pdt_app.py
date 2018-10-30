@@ -73,8 +73,8 @@ SELECT jsonb_build_object(
 	return json.dumps(rows[0][0])
 
 
-@app.route('/shortest_paths', methods=['GET'])
-def shortest_paths():
+@app.route('/heatmap_italy', methods=['GET'])
+def heatmap_italy():
 	cur = connect_to_db()
 
 	cur.execute("""

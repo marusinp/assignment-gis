@@ -7,9 +7,10 @@ body {
 	position: absolute;
 	top: 0;
 	bottom: 0;
-	left: 200px;
+	left: 400px;
 	width: 70%;
 }
+
 
 .marker {
 	background-image: url('marker-mapbox.png');

@@ -35,6 +35,32 @@ var defaultZoom = 20;
 //     }
 // }
 
+function showCoordsAndZoom(map) {
+    map.on('mousemove', function (e) {
+        // e.lngLat is the longitude, latitude geographical position of the event
+        document.getElementById('lng').innerHTML = "Lng: " + e.lngLat['lng'];
+        document.getElementById('lat').innerHTML = "Lat: " + e.lngLat['lat'];
+
+
+        // e.point is the x, y coordinates of the mousemove event relative
+        // to the top-left corner of the map
+        document.getElementById('map_x').innerHTML = "Map X: " + e.point['x'];
+        document.getElementById('map_y').innerHTML = "Map Y: " + e.point['y'];
+    });
+    map.on('zoomend', function (e) {
+        // console.log(map.getZoom());
+        document.getElementById('zoomlevel').innerHTML = "Zoom level: " + map.getZoom();
+        // console.log(map.getZoom());
+    });
+}
+
+function debugOnClick() {
+    map.on('click', function (e) {
+        map.flyTo({center: e.lngLat});
+        console.log(JSON.stringify(e.lngLat));
+        console.log(map.getZoom());
+    });
+}
 
 function initMap(lat, lng, zoom) {
 
@@ -52,6 +78,18 @@ function initMap(lat, lng, zoom) {
         },
         trackUserLocation: true
     }));
+
+    showCoordsAndZoom(map);
+    debugOnClick();
+
+    document.getElementById('btnHeatmap').addEventListener('click', function () {
+    // Fly to Italy
+    map.flyTo({
+        center: [14.301276935814514,42.83708763735561],
+        zoom: 6.737044040050586
+    });
+});
+
 
 }
 
@@ -169,33 +207,35 @@ function radiusJS() {
 
 }
 
-function shortestPathsJS() {
+function heatmapItalyJS() {
     var requestData = {
-        "lat": lat,
-        "lng": lng,
-        "radius": 1000,
+        // "lat": lat,
+        // "lng": lng,
+        // "radius": 1000,
     };
-    console.log("DATA  REQ " + JSON.stringify(requestData));
+
+
+    // console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
-        url: "/shortest_paths",
+        url: "/heatmap_italy",
         data: requestData,
         type: "GET"
     }).done(function (data) {
 
-
         var geojson = JSON.parse(data);
-        console.log(JSON.stringify(geojson));
 
-        map.addSource('trees', {
+        // console.log(JSON.stringify(geojson));
+
+        map.addSource('earthquakes', {
             type: 'geojson',
             data: geojson,
         });
 
 
         map.addLayer({
-            id: 'trees-heat',
+            id: 'earthquakes-heat',
             type: 'heatmap',
-            source: 'trees',
+            source: 'earthquakes',
             maxzoom: 24,
             paint: {
                 // increase weight as diameter breast height increases
@@ -244,9 +284,9 @@ function shortestPathsJS() {
         }, 'waterway-label');
 
         map.addLayer({
-            id: 'trees-point',
+            id: 'earthquakes-point',
             type: 'circle',
-            source: 'trees',
+            source: 'earthquakes',
             minzoom: 14,
             paint: {
                 // increase the radius of the circle as the zoom level and dbh value increases
@@ -285,7 +325,7 @@ function shortestPathsJS() {
         }, 'waterway-label');
 
 
-        map.on('click', 'trees-point', function (e) {
+        map.on('click', 'earthquakes-point', function (e) {
             new mapboxgl.Popup()
                 .setLngLat(e.features[0].geometry.coordinates)
                 .setHTML('<b>Magnitude:</b> ' + e.features[0].properties.magnitude)
@@ -295,7 +335,6 @@ function shortestPathsJS() {
 
 
 }
-
 
 
 // $("#btnBike").click(function (event) {
