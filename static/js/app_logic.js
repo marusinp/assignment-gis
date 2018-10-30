@@ -82,13 +82,6 @@ function initMap(lat, lng, zoom) {
     showCoordsAndZoom(map);
     debugOnClick();
 
-    document.getElementById('btnHeatmap').addEventListener('click', function () {
-    // Fly to Italy
-    map.flyTo({
-        center: [14.301276935814514,42.83708763735561],
-        zoom: 6.737044040050586
-    });
-});
 
 
 }
@@ -188,7 +181,7 @@ function radiusJS() {
                 .addTo(map);
         });
 
-        map.addSource("polygon", createGeoJSONCircle([lng, lat], 0.5));
+        map.addSource("polygon", createGeoJSONCircle([lng, lat], 1));
 
         map.addLayer({
             "id": "polygon",
@@ -214,6 +207,10 @@ function heatmapItalyJS() {
         // "radius": 1000,
     };
 
+    map.flyTo({
+        center: [14.301276935814514,42.83708763735561],
+        zoom: 6.737044040050586
+    });
 
     // console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({

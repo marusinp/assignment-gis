@@ -68,12 +68,28 @@ FROM (
 
 ------
 
+explain (format yaml, analyze true) SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
+    where amenity = 'cafe'
+    and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint(17.1061116, 48.14498859990289), 4326)::geography, 5000);
+
+-----
+CREATE INDEX gist_geog_point ON planet_osm_point USING GIST (geography(st_transform(way,4326)));
+
+explain (format yaml,analyze true) SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
+    where amenity = 'cafe'
+    and ST_DWithin(st_transform(way,4326), ST_SetSRID(ST_MakePoint(17.1061116, 48.14498859990289), 4326), 5000, true);
+
+drop INDEX gist_geog_point;
+
+
+-----
+
 with poi as (
 	SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
     where amenity = 'cafe'
     and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint(17.1061116, 48.14498859990289), 4326)::geography, 200)
 )
-SELECT jsonb_build_object(
+ SELECT jsonb_build_object(
   'type',     'FeatureCollection',
   'features', jsonb_agg(feature)
 ) from (

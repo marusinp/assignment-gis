@@ -34,7 +34,8 @@ explain (format yaml) select *
                       from character c
                              join paragraph p on p.charid = c.charid;
 
--- veci,kt. selectujem, musia byt v group by( ak by som tu pridal description, mozu mat viaceri soldieri iny desc a QP by ho vybral nahodne, resp. nevedel vybrat - bullshit)
+-- veci,kt. selectujem, musia byt v group by( ak by som tu pridal description, mozu mat viaceri soldieri iny desc a
+-- QP by ho vybral nahodne, resp. nevedel vybrat - bullshit)
 select count(*) as count, charname
 from character
 group by charname
