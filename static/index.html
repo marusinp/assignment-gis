@@ -24,14 +24,13 @@
         </p>-->
     </div>
 
-    <!--<button type="button" class="btn btn-primary">Show something</button>-->
+    <form id="radius_form">
+        <input type="text" id="radiusTextField" class="form-control" name="fname" placeholder="Radius" required><br>
+        <input type="submit" id="btnSend" class="btn btn-primary" value="Show" onclick="radiusJS()"> <br><br>
+    </form>
 
-    <input type="text" id="inputSearch" class="form-control" name="fname" placeholder="Radius" required autofocus><br>
-    <input type="submit" id="btnSend" class="btn btn-primary" value="Search" onclick="radiusJS()"> <br><br>
-
-
-    <input type="submit" id="btnHeatmap" class="btn btn-primary" value="Heatmap" onclick="heatmapItalyJS()">
-
+    <input type="button" id="btnHeatmap" class="btn btn-primary" value="Heatmap" onclick="heatmapItalyJS()">
+    <input type="button" id="btnRouting" class="btn btn-primary" value="Routing" onclick="routingJS()">
     <p>Coords & zoom:</p>
     <p id="lng"></p>
     <p id="lat"></p>

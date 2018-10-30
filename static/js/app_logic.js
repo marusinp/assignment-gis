@@ -6,34 +6,11 @@ var lng = 17.106794;
 var defaultZoom = 20;
 
 
-// function setGeoPosition() {
-//     if (navigator.geolocation) {
-//         // check if geolocation is supported/enabled on current browser
-//         navigator.geolocation.getCurrentPosition(
-//             function success(position) {
-//                 // Location successful
-//                 lat = position.coords.latitude;
-//                 lng = position.coords.longitude;
-//
-//                 map.panTo([lat, lng]);
-//                 // mode(defaultMode, lat, lng);
-//             }, function error(position) {
-//                 // for when getting location results in an error (user refuses to share GPS location)
-//                 console.error('An error has occured while retrieving location');
-//
-//                 map.panTo([lat, lng]);
-//                 // mode(defaultMode, lat, lng);
-//             });
-//     }
-//     else {
-//         // geolocation is not supported
-//         console.log('geolocation is not enabled on this browser');
-//
-//         map.panTo([lat, lng]);
-//         // mode(defaultMode, lat, lng);
-//
-//     }
-// }
+$('#radius_form').submit(function () {
+    console.log("TEST");
+    return false;
+});
+
 
 function showCoordsAndZoom(map) {
     map.on('mousemove', function (e) {
@@ -81,7 +58,6 @@ function initMap(lat, lng, zoom) {
 
     showCoordsAndZoom(map);
     debugOnClick();
-
 
 
 }
@@ -154,7 +130,7 @@ function radiusJS() {
     var requestData = {
         "lat": lat,
         "lng": lng,
-        "radius": 1000,
+        "radius": $("#radiusTextField").val()
     };
     console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
@@ -163,6 +139,7 @@ function radiusJS() {
         datatype: 'json',
         type: "GET"
     }).done(function (data) {
+
 
         var geojson = JSON.parse(data);
         console.log(JSON.stringify(geojson));
@@ -208,7 +185,7 @@ function heatmapItalyJS() {
     };
 
     map.flyTo({
-        center: [14.301276935814514,42.83708763735561],
+        center: [14.301276935814514, 42.83708763735561],
         zoom: 6.737044040050586
     });
 
@@ -330,11 +307,29 @@ function heatmapItalyJS() {
         });
     });
 
-
 }
 
+function routingJS() {
+    var requestData = {
+        "src": "lekáreň sv. michala",
+        "stop": "santal",
+        "dst": "slovenská sporiteľňa"
+    };
+    console.log("DATA  REQ " + JSON.stringify(requestData));
+    $.ajax({
+        url: "/routing",
+        data: requestData,
+        datatype: 'json',
+        type: "GET"
+    }).done(function (data) {
 
-// $("#btnBike").click(function (event) {
-//     event.preventDefault();
-//     gjsonLayer.loadURL('/map/radius?distance=' + $("#custom-handle").html() + '&lat=' + lat + '&lng=' + lng);
-// });
+
+        var geojson = JSON.parse(data);
+        console.log(JSON.stringify(geojson));
+
+
+
+    });
+
+
+}
