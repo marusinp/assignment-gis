@@ -319,16 +319,35 @@ function routingJS() {
     $.ajax({
         url: "/routing",
         data: requestData,
-        datatype: 'json',
         type: "GET"
     }).done(function (data) {
+        data = data.replace(/\\/g, '');
+        // console.log("data2 " + data);
 
 
-        var geojson = JSON.parse(data);
-        console.log(JSON.stringify(geojson));
+        // console.log(typeof data);
+        var geojson = JSON.parse(data.slice(1,-1));
+
+        // console.log('data JSON: ' + JSON.stringify(geojson));
 
 
-
+        map.addLayer({
+            id: "routing",
+            source: {
+                type: "geojson",
+                data: {
+                    "type": "FeatureCollection",
+                    "features": [
+                        {
+                            "type": "Feature",
+                            "properties": {},
+                            "geometry": geojson
+                        }
+                    ]
+                }
+            },
+            type: "line"
+        })
     });
 
 

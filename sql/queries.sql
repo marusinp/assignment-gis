@@ -309,7 +309,7 @@ with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.na
 										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
 						 where lower(name) = 'slovenská sporiteľňa'
 						 limit 1)
-select ST_AsGeoJSON(ST_UNION(merged_route.the_geom))
+select ST_AsGeoJSON(st_union((merged_route.the_geom)))
 from (SELECT ways.the_geom
 			from pgr_dijkstra('SELECT gid as id, source, target,
 							 length as cost FROM ways',
@@ -333,6 +333,8 @@ from (SELECT ways.the_geom
 
 
 ----
+
+
 
 
 SELECT ST_AsGeoJSON(ST_UNION(b.the_geom))

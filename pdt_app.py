@@ -34,7 +34,7 @@ def routing():
 	# logger.debug(request.data)
 	src = request.args.get('src')
 	stop = request.args.get('stop')
-	dst = request.args.get('radius')
+	dst = request.args.get('dst')
 
 	logger.debug("src: " + str(src))
 
