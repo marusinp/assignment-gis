@@ -294,62 +294,193 @@ from planet_osm_point as point
 where point.name like '%námestie%';
 
 ----
-with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
-						 from planet_osm_point as point
-										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						 where lower(name) = 'lekáreň sv. michala'
-						 limit 1),
-		 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name
-							from planet_osm_point as point
-										 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-							where lower(name) = 'santal'
-							limit 1),
-		 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name
-						 from planet_osm_point as point
-										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						 where lower(name) = 'slovenská sporiteľňa'
-						 limit 1)
-select ST_AsGeoJSON(st_union((merged_route.the_geom)))
-from (SELECT ways.the_geom
-			from pgr_dijkstra('SELECT gid as id, source, target,
+
+explain (format yaml, analyze true) select vertices.id as src_id, point.osm_id, point.amenity, point.name
+																		from planet_osm_point as point
+																					 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+																		where lower(name) = 'lekáreň sv. michala'
+																		limit 1;
+-- Startup Cost: 0.00
+-- Total Cost: 2178.31
+create index index_points_on_lower_name
+	on planet_osm_point (lower(name));
+
+-- Startup Cost: 0.42
+-- Total Cost: 1327.26
+explain (format yaml, analyze true) select vertices.id as src_id, point.osm_id, point.amenity, point.name
+																		from planet_osm_point as point
+																					 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+																		where lower(name) = 'lekáreň sv. michala'
+																		limit 1;
+
+drop index index_points_on_lower_name;
+
+CREATE INDEX gist_geom_point
+	ON planet_osm_point
+	USING GIST (geography(st_transform(way, 4326)));
+
+-- create index index_points_on_lower_name on planet_osm_point (lower(name));
+
+-- drop index index_points_on_lower_name;
+
+-- s indexom index_points_on_lower_name: 	Startup Cost: 12013.95
+--     																		Total Cost: 12016.46
+
+-- bez indexu index_points_on_lower_name 	Startup Cost: 12019.23
+--     																		Total Cost: 12021.74
+-- eeeeh
+
+explain (format yaml, analyze true) with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'lekáreň sv. michala'
+																								 limit 1),
+																				 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name
+																									from planet_osm_point as point
+																												 JOIN ways_vertices_pgr as vertices
+																													 ON (point.osm_id = vertices.osm_id)
+																									where lower(name) = 'santal'
+																									limit 1),
+																				 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'slovenská sporiteľňa'
+																								 limit 1)
+																		select ST_AsGeoJSON(st_union((merged_route.the_geom)))
+																		from (SELECT ways.the_geom
+																					from pgr_dijkstra('SELECT gid as id, source, target,
 							 length as cost FROM ways',
-												(select src_id from src),
-												(select stop_id from stop),
-												directed := false
-							 ) src_stop_dij
-						 JOIN ways ON (src_stop_dij.edge = ways.gid)
-			--         order by src_stop_dij.seq
-			union
-			SELECT ways.the_geom
-			from pgr_dijkstra('
+																														(select src_id from src),
+																														(select stop_id from stop),
+																														directed := false
+																									 ) src_stop_dij
+																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+																					--         order by src_stop_dij.seq
+																					union
+																					SELECT ways.the_geom
+																					from pgr_dijkstra('
                 SELECT gid as id, source, target,
                         length as cost FROM ways',
-												(select stop_id from stop),
-												(select dst_id from dst),
-												directed := false
-							 ) stop_dst_dij
-						 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
+																														(select stop_id from stop),
+																														(select dst_id from dst),
+																														directed := false
+																									 ) stop_dst_dij
+																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
 --         order by stop_dst_dij.seq;
 
 
 ----
+-- geom index uz existuje a indexy na ways.source a ways.target nemaju vplyv na performance
+CREATE INDEX source_idx
+	ON ways (source);
+CREATE INDEX target_idx
+	ON ways (target);
+-- CREATE INDEX geom_idx ON ways USING GIST(the_geom);
+
+drop INDEX source_idx;
+drop INDEX target_idx;
+-- drop INDEX geom_idx;
 
 
-SELECT ST_AsGeoJSON(ST_UNION(b.the_geom))
-		-- SELECT seq, edge, rpad(b.the_geom::text,60,' ') AS "the_geom (truncated)"
-FROM pgr_dijkstra('
-                SELECT gid as id, source, target,
-                        length as cost FROM ways',
-									--                   103675, 95222,
-									103675, 121070,
-									directed := false
-				 ) a
-			 JOIN ways b ON (a.edge = b.gid);
+with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name, point.way
+						 from planet_osm_point as point
+										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+						 where lower(name) = 'lekáreň sv. michala'
+						 limit 1),
+		 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name, point.way
+							from planet_osm_point as point
+										 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+							where lower(name) = 'santal'
+							limit 1),
+		 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name, point.way
+						 from planet_osm_point as point
+										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+						 where lower(name) = 'slovenská sporiteľňa'
+						 limit 1),
+		 radius as (select greatest(st_distance_sphere(st_transform(src.way, 4326), st_transform(stop.way, 4326)),
+																st_distance_sphere(st_transform(src.way, 4326), st_transform(dst.way, 4326)),
+																st_distance_sphere(st_transform(stop.way, 4326),
+																									 st_transform(dst.way, 4326))) as bb_radius
+								from src,
+										 stop,
+										 dst)
+-- SELECT 'SELECT gid as id, source, target, length as cost
+-- FROM ways
+-- where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
+-- 								 st_transform('|| 9||', 4326) :: geography,
+-- 								 ',||8* 2||,')';
+
+-- select 'Value: ' || 42;
+SELECT gid as id, source, target, length as cost
+FROM ways,
+		 stop,
+		 radius
+where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
+								 st_transform(stop.way, 4326) :: geography,
+								 radius.bb_radius * 2);
 
 ----
 
+explain (format yaml, analyze true) with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name,point.way
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'lekáreň sv. michala'
+																								 limit 1),
+																				 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name,point.way
+																									from planet_osm_point as point
+																												 JOIN ways_vertices_pgr as vertices
+																													 ON (point.osm_id = vertices.osm_id)
+																									where lower(name) = 'santal'
+																									limit 1),
+																				 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name,point.way
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'slovenská sporiteľňa'
+																								 limit 1),
+																				 radius as (select greatest(st_distance_sphere(st_transform(src.way, 4326),
+																																											 st_transform(stop.way, 4326)),
+																																		st_distance_sphere(st_transform(src.way, 4326),
+																																											 st_transform(dst.way, 4326)),
+																																		st_distance_sphere(st_transform(stop.way, 4326),
+																																											 st_transform(dst.way, 4326))) as bb_radius
+																										from src,
+																												 stop,
+																												 dst)
+																		select ST_AsGeoJSON(st_union((merged_route.the_geom)))
+																		from (SELECT ways.the_geom
+																					from pgr_dijkstra('SELECT gid as id, source, target, length as cost
+FROM ways,
+		 stop,
+		 radius
+where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
+								 st_transform(stop.way, 4326) :: geography,
+								 radius.bb_radius * 2)',
+																														(select src_id from src),
+																														(select stop_id from stop),
+																														directed := false
+																									 ) src_stop_dij
+																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+																					--         order by src_stop_dij.seq
+																					union
+																					SELECT ways.the_geom
+																					from pgr_dijkstra('
+                SELECT gid as id, source, target, length as cost
+FROM ways,
+		 stop,
+		 radius
+where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
+								 st_transform(stop.way, 4326) :: geography,
+								 radius.bb_radius * 2)',
+																														(select stop_id from stop),
+																														(select dst_id from dst),
+																														directed := false
+																									 ) stop_dst_dij
+																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
 
-----
 
 
 

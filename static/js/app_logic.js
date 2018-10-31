@@ -171,10 +171,7 @@ function radiusJS() {
             }
         });
 
-
     });
-
-
 }
 
 function heatmapItalyJS() {
