@@ -16,35 +16,64 @@
 </head>
 <body>
 
-<div id="buttons" class="btn-group">
+<header>
+    <h1>.pdt assignment</h1>
+</header>
 
-    <div class="jumbotron">
-        <p class="lead"></p>
-        <!--<p><a class="btn btn-lg btn-success" href="showSignUp" role="button">Sign up today</a>
-        </p>-->
-    </div>
+<div class="split right">
+    <div id='map'></div>
+</div>
 
-    <form id="radius_form">
-        <input type="text" id="radiusTextField" class="form-control" name="fname" placeholder="Radius" required><br>
-        <input type="submit" id="btnSend" class="btn btn-primary" value="Show" onclick="radiusJS()"> <br><br>
-    </form>
+<div class="split left">
+    <div id="buttons" class="btn-group">
 
-    <input type="button" id="btnHeatmap" class="btn btn-primary" value="Heatmap" onclick="heatmapItalyJS()">
-    <input type="button" id="btnRouting" class="btn btn-primary" value="Routing" onclick="routingJS()">
-    <p>Coords & zoom:</p>
-    <p id="lng"></p>
-    <p id="lat"></p>
-    <p id="map_x"></p>
-    <p id="map_y"></p>
-    <p id="zoomlevel"></p>
+        <div class="jumbotron">
+            <p class="lead"></p>
+            <!--<p><a class="btn btn-lg btn-success" href="showSignUp" role="button">Sign up today</a>
+            </p>-->
+        </div>
+
+        <h2>.query n.1: display nearby cafés</h2>
+
+        <p>Insert distance (in meters) below. After submission you'll see all nearby cafés within that radius. You can
+            then select
+            any of then for more information by clicking on its marker.</p>
+        <form id="radius_form">
+            <input type="text" id="radiusTextField" class="form-control" name="fname" placeholder="Radius (meters)"
+                   required>
+            <input type="submit" id="btnSend" class="btn btn-primary" value="Show" onclick="radiusJS()">
+        </form>
+
+        <h2>.query n.2: routing</h2>
+
+        <p>Following query finds the shortest path from TODO to TODO that includes one stop.
+            You can select stop from the list.</p>
+
+        <input type="button" id="btnRouting" class="btn btn-primary" value="Routing" onclick="routingJS()">
+        <h2>.query n.3: Earthquakes in Italy</h2>
+
+        <p>Following query is a visualisation of all earthquakes that hit Italy between August and November 2016.
+            Not only are you able to see the distribution of earhquakes but after proper zoom you can also spot a
+            magnitude of particular earthquake.</p>
+        <input type="button" id="btnHeatmap" class="btn btn-primary" value="Heatmap" onclick="heatmapItalyJS()">
 
 
-    <div id="slider">
-        <div id="custom-handle" class="ui-slider-handle"></div>
+        <h2>.coords & zoom:</h2>
+        <p>
+            Lng: <span id="lng"></span> <br/>
+            Lat: <span id="lat"></span> <br/>
+            Map x: <span id="map_x"></span> <br/>
+            Map y: <span id="map_y"></span> <br/>
+            Zoom Level: <span id="zoomlevel"></span>
+
+        </p>
+        <div id="slider">
+            <div id="custom-handle" class="ui-slider-handle"></div>
+        </div>
     </div>
 </div>
 
-<div id='map'></div>
+
 <script src="js/app_logic.js"></script>
 </body>
 </html>

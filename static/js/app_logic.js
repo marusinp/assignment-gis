@@ -15,18 +15,18 @@ $('#radius_form').submit(function () {
 function showCoordsAndZoom(map) {
     map.on('mousemove', function (e) {
         // e.lngLat is the longitude, latitude geographical position of the event
-        document.getElementById('lng').innerHTML = "Lng: " + e.lngLat['lng'];
-        document.getElementById('lat').innerHTML = "Lat: " + e.lngLat['lat'];
+        document.getElementById('lng').innerHTML = e.lngLat['lng'];
+        document.getElementById('lat').innerHTML = e.lngLat['lat'];
 
 
         // e.point is the x, y coordinates of the mousemove event relative
         // to the top-left corner of the map
-        document.getElementById('map_x').innerHTML = "Map X: " + e.point['x'];
-        document.getElementById('map_y').innerHTML = "Map Y: " + e.point['y'];
+        document.getElementById('map_x').innerHTML = e.point['x'];
+        document.getElementById('map_y').innerHTML = e.point['y'];
     });
     map.on('zoomend', function (e) {
         // console.log(map.getZoom());
-        document.getElementById('zoomlevel').innerHTML = "Zoom level: " + map.getZoom();
+        document.getElementById('zoomlevel').innerHTML = map.getZoom();
         // console.log(map.getZoom());
     });
 }
