@@ -335,8 +335,6 @@ from (SELECT ways.the_geom
 ----
 
 
-
-
 SELECT ST_AsGeoJSON(ST_UNION(b.the_geom))
 		-- SELECT seq, edge, rpad(b.the_geom::text,60,' ') AS "the_geom (truncated)"
 FROM pgr_dijkstra('

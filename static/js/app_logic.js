@@ -326,13 +326,18 @@ function routingJS() {
 
 
         // console.log(typeof data);
-        var geojson = JSON.parse(data.slice(1,-1));
+        var geojson = JSON.parse(data.slice(1, -1));
+        // console.log(geojson.coordinates[0]);
+
+        map.flyTo({
+            center: geojson.coordinates[0][0],
+            zoom: 16
+        });
 
         // console.log('data JSON: ' + JSON.stringify(geojson));
 
-
         map.addLayer({
-            id: "routing",
+            id: "routing_line",
             source: {
                 type: "geojson",
                 data: {
