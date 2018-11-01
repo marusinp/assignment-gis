@@ -4,6 +4,8 @@ var map, styleLayer;
 var lat = 48.145374;
 var lng = 17.106794;
 var defaultZoom = 20;
+var customLayers = [];
+var customSources = [];
 
 
 $('#radius_form').submit(function () {
@@ -11,6 +13,18 @@ $('#radius_form').submit(function () {
     return false;
 });
 
+
+function removeCustomLayersAndSources() {
+
+    for (var i = 0; i < customLayers.length; i++) {
+        map.removeLayer(customLayers[i]);
+    }
+    for (var i = 0; i < customSources.length; i++) {
+        map.removeSource(customSources[i]);
+    }
+    customLayers = [];
+    customSources = [];
+}
 
 function showCoordsAndZoom(map) {
     map.on('mousemove', function (e) {
@@ -175,6 +189,9 @@ function radiusJS() {
 }
 
 function heatmapItalyJS() {
+
+    removeCustomLayersAndSources();
+
     var requestData = {
         // "lat": lat,
         // "lng": lng,
@@ -196,15 +213,16 @@ function heatmapItalyJS() {
         var geojson = JSON.parse(data);
 
         // console.log(JSON.stringify(geojson));
-
+        customSources.push('earthquakes');
         map.addSource('earthquakes', {
             type: 'geojson',
             data: geojson,
         });
 
 
+        customLayers.push('earthquakes');
         map.addLayer({
-            id: 'earthquakes-heat',
+            id: 'earthquakes',
             type: 'heatmap',
             source: 'earthquakes',
             maxzoom: 24,
@@ -254,6 +272,7 @@ function heatmapItalyJS() {
             }
         }, 'waterway-label');
 
+        customLayers.push('earthquakes-point');
         map.addLayer({
             id: 'earthquakes-point',
             type: 'circle',
@@ -307,6 +326,8 @@ function heatmapItalyJS() {
 }
 
 function routingJS() {
+
+    removeCustomLayersAndSources();
     var requestData = {
         "src": "lekáreň sv. michala",
         "stop": "santal",
@@ -351,6 +372,7 @@ function routingJS() {
             type: "line"
         })
     });
-
+    customLayers.push('routing_line');
+    customSources.push('routing line');
 
 }
