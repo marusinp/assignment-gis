@@ -406,13 +406,13 @@ with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.na
 								from src,
 										 stop,
 										 dst)
--- SELECT 'SELECT gid as id, source, target, length as cost
--- FROM ways
--- where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
--- 								 st_transform('|| 9||', 4326) :: geography,
--- 								 ',||8* 2||,')';
+		-- SELECT 'SELECT gid as id, source, target, length as cost
+		-- FROM ways
+		-- where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
+		-- 								 st_transform('|| 9||', 4326) :: geography,
+		-- 								 ',||8* 2||,')';
 
--- select 'Value: ' || 42;
+		-- select 'Value: ' || 42;
 SELECT gid as id, source, target, length as cost
 FROM ways,
 		 stop,
@@ -423,19 +423,31 @@ where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
 
 ----
 
-explain (format yaml, analyze true) with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name,point.way
+explain (format yaml, analyze true) with src as (select vertices.id as src_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name,
+																												point.way
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
 																								 where lower(name) = 'lekáreň sv. michala'
 																								 limit 1),
-																				 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name,point.way
+																				 stop as (select vertices.id as stop_id,
+																												 point.osm_id,
+																												 point.amenity,
+																												 point.name,
+																												 point.way
 																									from planet_osm_point as point
 																												 JOIN ways_vertices_pgr as vertices
 																													 ON (point.osm_id = vertices.osm_id)
 																									where lower(name) = 'santal'
 																									limit 1),
-																				 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name,point.way
+																				 dst as (select vertices.id as dst_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name,
+																												point.way
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
@@ -481,6 +493,65 @@ where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
 																									 ) stop_dst_dij
 																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
 
+---
+-- london-db analysis
+select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where point.amenity = 'cafe';
+
+--- create crime_records table
+
+drop table crime_records;
+
+CREATE TABLE crime_records
+(
+	id                    SERIAL PRIMARY KEY,
+	longitude             real,
+	latitude              real,
+	location              varchar(100),
+	crime_type            varchar(100),
+	last_outcome_category varchar(100)
+);
+
+COPY crime_records (longitude, latitude, location, crime_type, last_outcome_category)
+FROM '/Users/pmarusin/Downloads/london-police-records/london-street-edit.csv' DELIMITER ',' CSV HEADER;
+
+alter table crime_records
+	add column geom geometry(Point, 4326);
+
+update crime_records
+set geom = st_SetSrid(st_MakePoint(longitude, latitude), 4326);
+
+delete
+from crime_records
+where location = 'No Location';
+
+select count(*)
+from crime_records
+where location = 'No Location';
+
+----
+
+select distinct crime_type from crime_records;
+
+----
+
+
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+-- 																								 'location', location,
+																								 'crime_type', crime_type
+-- 																								 'last_outcome_category', last_outcome_category
+																									 ))
+								 ) AS feature
+			FROM (SELECT geom, crime_type FROM crime_records limit 99999) inputs) features;
 
 
 

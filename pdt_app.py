@@ -38,7 +38,7 @@ def routing():
 
 	logger.debug("src: " + str(src))
 
-	cur = connect_to_db()
+	cur = connect_to_db('gis')
 
 	cur.execute("""
 	with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
@@ -93,7 +93,7 @@ def radius():
 
 	logger.debug("lat: " + str(lat))
 
-	cur = connect_to_db()
+	cur = connect_to_db('gis')
 
 	cur.execute("""CREATE INDEX gist_geog_point ON planet_osm_point USING GIST (geography(st_transform(way,4326)));""")
 
@@ -137,7 +137,7 @@ SELECT jsonb_build_object(
 
 @app.route('/heatmap_italy', methods=['GET'])
 def heatmap_italy():
-	cur = connect_to_db()
+	cur = connect_to_db('gis')
 
 	cur.execute("""
 		SELECT jsonb_build_object(
@@ -163,15 +163,40 @@ FROM (
 	return json.dumps(rows[0][0])
 
 
+@app.route('/heatmap_london', methods=['GET'])
+def heatmap_london():
+	cur = connect_to_db('london-db')
+
+	cur.execute("""
+		SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+-- 																								 'location', location,
+																								 'crime_type', crime_type
+-- 																								 'last_outcome_category', last_outcome_category
+																									 ))
+								 ) AS feature
+			FROM (SELECT geom, crime_type FROM crime_records limit 99999) inputs) features;
+	""")
+
+	rows = cur.fetchall()
+	return json.dumps(rows[0][0])
+
+
 @app.route('/', methods=['GET', 'POST'])
 def get_title_page():
 	logger.debug("Path: ", os.path.dirname(__file__))
 	return app.send_static_file('index.html')
 
 
-def connect_to_db():
+def connect_to_db(db_name):
 	try:
-		conn = psycopg2.connect(dbname='gis', host='localhost', port=5432, user='pmarusin', password='')
+		conn = psycopg2.connect(dbname=db_name, host='localhost', port=5432, user='pmarusin', password='')
 
 	except:
 		logging.error("I am unable to connect to the database")
