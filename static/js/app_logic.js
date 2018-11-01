@@ -26,7 +26,7 @@ function removeCustomLayersAndSources() {
     customSources = [];
 }
 
-function showCoordsAndZoom(map) {
+function addCoordsAndZoomListeners(map) {
     map.on('mousemove', function (e) {
         // e.lngLat is the longitude, latitude geographical position of the event
         document.getElementById('lng').innerHTML = e.lngLat['lng'];
@@ -70,7 +70,10 @@ function initMap(lat, lng, zoom) {
         trackUserLocation: true
     }));
 
-    showCoordsAndZoom(map);
+    
+    document.getElementById('zoomlevel').innerHTML = map.getZoom();
+
+    addCoordsAndZoomListeners(map);
     debugOnClick();
 
 
