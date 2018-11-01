@@ -4,8 +4,10 @@ var map, styleLayer;
 var lat = 48.145374;
 var lng = 17.106794;
 var defaultZoom = 20;
+
 var customLayers = [];
 var customSources = [];
+var markers = [];
 
 
 $('#radius_form').submit(function () {
@@ -14,7 +16,7 @@ $('#radius_form').submit(function () {
 });
 
 
-function removeCustomLayersAndSources() {
+function mapCleanUp() {
 
     for (var i = 0; i < customLayers.length; i++) {
         map.removeLayer(customLayers[i]);
@@ -22,8 +24,12 @@ function removeCustomLayersAndSources() {
     for (var i = 0; i < customSources.length; i++) {
         map.removeSource(customSources[i]);
     }
+    for (var i = 0; i < markers.length; i++) {
+        markers[i].remove();
+    }
     customLayers = [];
     customSources = [];
+    markers = [];
 }
 
 function addCoordsAndZoomListeners(map) {
@@ -70,7 +76,7 @@ function initMap(lat, lng, zoom) {
         trackUserLocation: true
     }));
 
-    
+
     document.getElementById('zoomlevel').innerHTML = map.getZoom();
 
     addCoordsAndZoomListeners(map);
@@ -149,6 +155,7 @@ function radiusJS() {
         "lng": lng,
         "radius": $("#radiusTextField").val()
     };
+    mapCleanUp();
     console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
         url: "/radius",
@@ -168,32 +175,34 @@ function radiusJS() {
             el.className = 'marker';
 
             // make a marker for each feature and add to the map
-            new mapboxgl.Marker(el)
+            var marker = new mapboxgl.Marker(el)
                 .setLngLat(marker.geometry.coordinates)
                 .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
                     .setHTML(fillPopup(marker.properties)))
                 .addTo(map);
+                markers.push(marker);
         });
 
-        map.addSource("polygon", createGeoJSONCircle([lng, lat], 1));
 
-        map.addLayer({
-            "id": "polygon",
-            "type": "fill",
-            "source": "polygon",
-            "layout": {},
-            "paint": {
-                "fill-color": "blue",
-                "fill-opacity": 0.6
-            }
-        });
+        // map.addSource("polygon", createGeoJSONCircle([lng, lat], 1));
+        //
+        // map.addLayer({
+        //     "id": "polygon",
+        //     "type": "fill",
+        //     "source": "polygon",
+        //     "layout": {},
+        //     "paint": {
+        //         "fill-color": "blue",
+        //         "fill-opacity": 0.6
+        //     }
+        // });
 
     });
 }
 
 function heatmapItalyJS() {
 
-    removeCustomLayersAndSources();
+    mapCleanUp();
 
     var requestData = {
         // "lat": lat,
@@ -217,6 +226,7 @@ function heatmapItalyJS() {
 
         // console.log(JSON.stringify(geojson));
         customSources.push('earthquakes');
+
         map.addSource('earthquakes', {
             type: 'geojson',
             data: geojson,
@@ -224,6 +234,7 @@ function heatmapItalyJS() {
 
 
         customLayers.push('earthquakes');
+
         map.addLayer({
             id: 'earthquakes',
             type: 'heatmap',
@@ -276,6 +287,7 @@ function heatmapItalyJS() {
         }, 'waterway-label');
 
         customLayers.push('earthquakes-point');
+
         map.addLayer({
             id: 'earthquakes-point',
             type: 'circle',
@@ -330,7 +342,7 @@ function heatmapItalyJS() {
 
 function routingJS() {
 
-    removeCustomLayersAndSources();
+    mapCleanUp();
     var requestData = {
         "src": "lekáreň sv. michala",
         "stop": "santal",
@@ -375,7 +387,8 @@ function routingJS() {
             type: "line"
         })
     });
+
     customLayers.push('routing_line');
-    customSources.push('routing line');
+    customSources.push('routing_line');
 
 }
