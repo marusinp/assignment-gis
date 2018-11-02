@@ -465,17 +465,42 @@ function routingJS() {
         data: requestData,
         type: "GET"
     }).done(function (data) {
-        data = data.replace(/\\/g, '');
-        // console.log("data2 " + data);
+
+        console.log("data " + data);
+
+        data = JSON.parse(data);
+        var points = data['points'].replace(/\\"/g, '"');
+        var route = data['route'].replace(/\\"/g, '"');
 
 
         // console.log(typeof data);
-        var geojson = JSON.parse(data.slice(1, -1));
+        console.log("body       " + points);
+        console.log("cesta       " + route);
+
+
+        var route_geojson = JSON.parse(route.slice(1, -1));
+        var points_geojson = JSON.parse(points);
         // console.log(geojson.coordinates[0]);
 
         map.flyTo({
-            center: geojson.coordinates[0][0],
+            center: points_geojson.features[0].geometry.coordinates,
             zoom: 16
+        });
+
+
+        points_geojson.features.forEach(function (marker) {
+
+            // create a HTML element for each feature
+            var el = document.createElement('div');
+            el.className = 'marker';
+
+            // make a marker for each feature and add to the map
+            var marker = new mapboxgl.Marker(el)
+                .setLngLat(marker.geometry.coordinates)
+                .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
+                    .setHTML('<h3>' + marker.properties.name + '</h3>'))
+                .addTo(map);
+            shownMarkers.push(marker);
         });
 
         // console.log('data JSON: ' + JSON.stringify(geojson));
@@ -493,7 +518,7 @@ function routingJS() {
                         {
                             "type": "Feature",
                             "properties": {},
-                            "geometry": geojson
+                            "geometry": route_geojson
                         }
                     ]
                 }

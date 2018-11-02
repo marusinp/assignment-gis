@@ -279,16 +279,39 @@ where osm_id = 2001099710;
 -----
 
 
-explain (analyze true, format yaml) select st_transform(point.way, 4326) as way,
-																					 vertices.id                   as src_id,
-																					 point.osm_id,
-																					 point.amenity,
-																					 point.name
-																		from planet_osm_point as point
-																					 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-																		where lower(name) = 'lekáreň sv. michala'
-																			 or lower(name) = "santal";
-limit 1;
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'name', name
+																									 ))
+								 ) AS feature
+			FROM (select st_transform(point.way, 4326) as way,
+									 vertices.id                   as vertex_id,
+									 point.osm_id,
+									 point.amenity,
+									 point.name
+						from planet_osm_point as point
+									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+						where lower(name) = 'lekáreň sv. michala'
+							 or lower(name) = 'santal'
+							 or lower(name) = 'slovenská sporiteľňa'
+
+						limit 3) inputs) features;
+
+
+select st_transform(point.way, 4326) as way, vertices.id as vertex_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where lower(name) = 'lekáreň sv. michala'
+	 or lower(name) = 'santal'
+	 or lower(name) = 'slovenská sporiteľňa'
+
+limit 3;
 
 explain (format yaml, analyze true) with src as (select st_transform(point.way, 4326) as way,
 																												vertices.id                   as src_id,

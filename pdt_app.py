@@ -40,49 +40,123 @@ def routing():
 
 	cur = connect_to_db('gis')
 
-	cur.execute()
+	# 	old_query = """
+	# 	with src as (select st_transform(point.way, 4326) as way,
+	# 																												vertices.id                   as src_id,
+	# 																												point.osm_id,
+	# 																												point.amenity,
+	# 																												point.name
+	# 																								 from planet_osm_point as point
+	# 																												JOIN ways_vertices_pgr as vertices
+	# 																													ON (point.osm_id = vertices.osm_id)
+	# 																								 where lower(name) = 'lekáreň sv. michala'
+	# 																								 limit 1),
+	# 																				 stop as (select st_transform(point.way, 4326) as way,
+	# 																												 vertices.id                   as stop_id,
+	# 																												 point.osm_id,
+	# 																												 point.amenity,
+	# 																												 point.name
+	# 																									from planet_osm_point as point
+	# 																												 JOIN ways_vertices_pgr as vertices
+	# 																													 ON (point.osm_id = vertices.osm_id)
+	# 																									where lower(name) = 'santal'
+	# 																									limit 1),
+	# 																				 dst as (select st_transform(point.way, 4326) as way,
+	# 																												vertices.id                   as dst_id,
+	# 																												point.osm_id,
+	# 																												point.amenity,
+	# 																												point.name
+	# 																								 from planet_osm_point as point
+	# 																												JOIN ways_vertices_pgr as vertices
+	# 																													ON (point.osm_id = vertices.osm_id)
+	# 																								 where lower(name) = 'slovenská sporiteľňa'
+	# 																								 limit 1)
+	# 																		select ST_AsGeoJSON(st_union((merged_route.the_geom))),
+	# 																					 st_asgeojson(st_union((src.way))),
+	# 																					 st_asgeojson(st_union((stop.way))),
+	# 																					 st_asgeojson(st_union(dst.way))
+	# 																		from (SELECT ways.the_geom
+	# 																					from pgr_dijkstra('SELECT gid as id, source, target,
+	# 							 length as cost FROM ways',
+	# 																														(select src_id from src),
+	# 																														(select stop_id from stop),
+	# 																														directed := false
+	# 																									 ) src_stop_dij
+	# 																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+	# 																					union
+	# 																					SELECT ways.the_geom
+	# 																					from pgr_dijkstra('
+	#                 SELECT gid as id, source, target,
+	#                         length as cost FROM ways',
+	# 																														(select stop_id from stop),
+	# 																														(select dst_id from dst),
+	# 																														directed := false
+	# 																									 ) stop_dst_dij
+	# 																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route,
+	# 																				 src,
+	# 																				 stop,
+	# 																				 dst
+	# """
 
-	cur.execute("""
-	with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
-						 from planet_osm_point as point
-										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						 where lower(name) = '{src}'
-						 limit 1),
-		 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name
-							from planet_osm_point as point
-										 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-							where lower(name) = '{stop}'
-							limit 1),
-		 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name
-						 from planet_osm_point as point
-										JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						 where lower(name) = '{dst}'
-						 limit 1)
-select ST_AsGeoJSON(ST_UNION(merged_route.the_geom))
-from (SELECT ways.the_geom
-			from pgr_dijkstra('SELECT gid as id, source, target,
-							 length as cost FROM ways',
-												(select src_id from src),
-												(select stop_id from stop),
-												directed := false
-							 ) src_stop_dij
-						 JOIN ways ON (src_stop_dij.edge = ways.gid)
-			--         order by src_stop_dij.seq
-			union
-			SELECT ways.the_geom
-			from pgr_dijkstra('
-                SELECT gid as id, source, target,
-                        length as cost FROM ways',
-												(select stop_id from stop),
-												(select dst_id from dst),
-												directed := false
-							 ) stop_dst_dij
-						 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
-""".format(src=src, stop=stop, dst=dst))
+	cur.execute("""SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'name', name,
+																								 'vertex_id',vertex_id
+																									 ))
+								 ) AS feature
+			FROM (select st_transform(point.way, 4326) as way,
+									 vertices.id                   as vertex_id,
+									 point.osm_id,
+									 point.name
+						from planet_osm_point as point
+									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+						where lower(name) = '{src}'
+							 or lower(name) = '{stop}'
+							 or lower(name) = '{dst}'
+
+						limit 3) inputs) features;
+						""".format(src=src, stop=stop, dst=dst))
 
 	rows = cur.fetchall()
+	response = {'points': json.dumps(rows[0][0],ensure_ascii=False)}
 
-	return json.dumps(rows[0][0])
+	src_id, stop_id, dst_id = rows[0][0]["features"][0]["properties"]["vertex_id"], \
+							  rows[0][0]["features"][1]["properties"]["vertex_id"], \
+							  rows[0][0]["features"][2]["properties"]["vertex_id"]
+
+	cur.execute("""
+		select ST_AsGeoJSON(st_union((merged_route.the_geom)))
+																		from (SELECT ways.the_geom
+																					from pgr_dijkstra('SELECT gid as id, source, target,
+							 length as cost FROM ways',
+																														{src_id},
+																														{stop_id},
+																														directed := false
+																									 ) src_stop_dij
+																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+																					union
+																					SELECT ways.the_geom
+																					from pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+																														{stop_id},
+																														{dst_id},
+																														directed := false
+																									 ) stop_dst_dij
+																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
+							""".format(src_id=src_id, stop_id=stop_id, dst_id=dst_id))
+
+	rows = cur.fetchall()
+	response['route'] = json.dumps(rows[0][0], ensure_ascii=False)
+
+
+	return json.dumps(response)
 
 
 @app.route('/radius', methods=['GET'])
@@ -171,9 +245,6 @@ def heatmap_london():
 
 	crime_type = request.args.get('crime_type')
 	row_limit = request.args.get('row_limit')
-
-
-
 
 	filtered_query = """
 		SELECT jsonb_build_object(
