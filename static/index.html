@@ -59,7 +59,31 @@
         <h2>.query n.4: Criminality in London</h2>
 
         <p>TODO description</p>
+        <select id="crimeTypeList" name="crimeTypeList">
+            <option value="all" selected="selected">All types</option>
+            <option value="Vehicle crime">Vehicle crime</option>
+            <option value="Other crime">Other crime</option>
+            <option value="Violence and sexual offences">Violence and sexual offences</option>
+            <option value="Criminal damage and arson">Criminal damage and arson</option>
+            <option value="Possession of weapons">Possession of weapons</option>
+            <option value="Robbery">Robbery</option>
+            <option value="Drugs">Drugs</option>
+            <option value="Burglary">Burglary</option>
+            <option value="Public order">Public order</option>
+            <option value="Theft from the person">Theft from the person</option>
+            <option value="Bicycle theft">Bicycle theft</option>
+            <option value="Anti-social behaviour">Anti-social behaviour</option>
+            <option value="Shoplifting">Shoplifting</option>
+            <option value="Shoplifting">Shoplifting</option>
+            <option value="Other theft">Other theft</option>
+        </select>
+
         <input type="button" id="btnLondon" class="btn btn-primary" value="London Heatmap" onclick="heatmapLondonJS()">
+
+        <h2>.query n.5: bridges crossing river thames </h2>
+
+        <p>TODO description</p>
+        <input type="button" id="btnBridges" class="btn btn-primary" value="Show Bridges" onclick="thamesBridgesJS()">
 
 
         <h2>.coords & zoom:</h2>

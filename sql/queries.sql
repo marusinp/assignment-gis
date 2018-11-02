@@ -33,9 +33,6 @@ where amenity = 'cafe';
 
 SELECT name
 from planet_osm_point
-
-		----
-
 where ST_DWithin(st_transform(way, 4326) :: geography,
 								 ST_SetSRID(ST_MakePoint(17.1061116, 48.14498859990289), 4326) :: geography, 50)
 	and amenity = 'cafe';
@@ -280,6 +277,76 @@ from planet_osm_point
 where osm_id = 2001099710;
 
 -----
+
+
+explain (analyze true, format yaml) select st_transform(point.way, 4326) as way,
+																					 vertices.id                   as src_id,
+																					 point.osm_id,
+																					 point.amenity,
+																					 point.name
+																		from planet_osm_point as point
+																					 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+																		where lower(name) = 'lekáreň sv. michala'
+																			 or lower(name) = "santal";
+limit 1;
+
+explain (format yaml, analyze true) with src as (select st_transform(point.way, 4326) as way,
+																												vertices.id                   as src_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'lekáreň sv. michala'
+																								 limit 1),
+																				 stop as (select st_transform(point.way, 4326) as way,
+																												 vertices.id                   as stop_id,
+																												 point.osm_id,
+																												 point.amenity,
+																												 point.name
+																									from planet_osm_point as point
+																												 JOIN ways_vertices_pgr as vertices
+																													 ON (point.osm_id = vertices.osm_id)
+																									where lower(name) = 'santal'
+																									limit 1),
+																				 dst as (select st_transform(point.way, 4326) as way,
+																												vertices.id                   as dst_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name
+																								 from planet_osm_point as point
+																												JOIN ways_vertices_pgr as vertices
+																													ON (point.osm_id = vertices.osm_id)
+																								 where lower(name) = 'slovenská sporiteľňa'
+																								 limit 1)
+																		select ST_AsGeoJSON(st_union((merged_route.the_geom))),
+																					 st_asgeojson(st_union((src.way))),
+																					 st_asgeojson(st_union((stop.way))),
+																					 st_asgeojson(st_union(dst.way))
+																		from (SELECT ways.the_geom
+																					from pgr_dijkstra('SELECT gid as id, source, target,
+							 length as cost FROM ways',
+																														(select src_id from src),
+																														(select stop_id from stop),
+																														directed := false
+																									 ) src_stop_dij
+																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+																					union
+																					SELECT ways.the_geom
+																					from pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+																														(select stop_id from stop),
+																														(select dst_id from dst),
+																														directed := false
+																									 ) stop_dst_dij
+																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route,
+																				 src,
+																				 stop,
+																				 dst;
+
+
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
 			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
@@ -330,19 +397,31 @@ CREATE INDEX gist_geom_point
 --     																		Total Cost: 12021.74
 -- eeeeh
 
-explain (format yaml, analyze true) with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
+explain (format yaml, analyze true) with src as (select st_transform(point.way, 4326) as way,
+																												vertices.id                   as src_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
 																								 where lower(name) = 'lekáreň sv. michala'
 																								 limit 1),
-																				 stop as (select vertices.id as stop_id, point.osm_id, point.amenity, point.name
+																				 stop as (select st_transform(point.way, 4326) as way,
+																												 vertices.id                   as stop_id,
+																												 point.osm_id,
+																												 point.amenity,
+																												 point.name
 																									from planet_osm_point as point
 																												 JOIN ways_vertices_pgr as vertices
 																													 ON (point.osm_id = vertices.osm_id)
 																									where lower(name) = 'santal'
 																									limit 1),
-																				 dst as (select vertices.id as dst_id, point.osm_id, point.amenity, point.name
+																				 dst as (select st_transform(point.way, 4326) as way,
+																												vertices.id                   as dst_id,
+																												point.osm_id,
+																												point.amenity,
+																												point.name
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
@@ -357,7 +436,6 @@ explain (format yaml, analyze true) with src as (select vertices.id as src_id, p
 																														directed := false
 																									 ) src_stop_dij
 																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
-																					--         order by src_stop_dij.seq
 																					union
 																					SELECT ways.the_geom
 																					from pgr_dijkstra('
@@ -496,9 +574,9 @@ where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
 ---
 -- london-db analysis
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
-from planet_osm_point as point
-			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-where point.amenity = 'cafe';
+from planet_osm_polygon as point
+			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id);
+-- where point.amenity = 'cafe';
 
 --- create crime_records table
 
@@ -533,11 +611,21 @@ where location = 'No Location';
 
 ----
 
-select distinct crime_type from crime_records;
+select count(*)
+from crime_records;
 
 ----
 
+select count(distinct latitude)
+from crime_records;
 
+-- visualisation test
+
+with cafes as (select osm_id, name, st_transform(way, 4326) as way
+							 from planet_osm_point
+							 where planet_osm_point.amenity = 'cafe'
+								 and name is not null
+							 limit 10)
 SELECT jsonb_build_object(
 				 'type', 'FeatureCollection',
 				 'features', jsonb_agg(feature)
@@ -546,12 +634,72 @@ FROM (SELECT jsonb_build_object(
 							 'type', 'Feature',
 							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
 							 'properties', jsonb_strip_nulls(jsonb_build_object(
--- 																								 'location', location,
-																								 'crime_type', crime_type
--- 																								 'last_outcome_category', last_outcome_category
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																								 -- 																								 'last_outcome_category', last_outcome_category
 																									 ))
 								 ) AS feature
-			FROM (SELECT geom, crime_type FROM crime_records limit 99999) inputs) features;
+			FROM (SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
+						FROM crime_records
+									 right join cafes
+										 on ST_DWithin((way) :: geography, st_transform(crime_records.geom, 4326) :: geography, 200)
+						where crime_type = 'Drugs'
+						group by crime_records.geom, crime_type
+-- 					 SELECT geom, crime_type
+					 -- 						FROM crime_records
+					 -- 						where crime_type = 'Violence and sexual offences'
+					 -- 						limit 99999
+					 --
+					 ) inputs) features;
+
+------
+
+
+with cafes as (select osm_id, name, st_transform(way, 4326) as way
+							 from planet_osm_point
+							 where planet_osm_point.amenity = 'cafe'
+								 and name is not null
+							 limit 5)
+SELECT crime_records.geom, count(crime_type) as crime_type_count
+FROM crime_records
+			 right join cafes on ST_DWithin((way) :: geography, st_transform(crime_records.geom, 4326) :: geography, 100)
+where crime_type = 'Drugs'
+group by crime_records.geom, crime_type;
+
+----
+
+
+with river_thames as (select st_union(way) as way from planet_osm_line where waterway = 'river'
+																																				 and name = 'River Thames')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'name', name,
+																								 'len', len
+																									 )
+									 )
+								 ) AS feature
+			FROM (select (array_agg(line.way)) [ 1 ]                                             as geom,
+									 line.name,
+									 (array_agg(st_length(st_transform(line.way, 4326) :: geography))) [ 1 ] as len
+						from planet_osm_line line,
+								 river_thames
+						where st_intersects(line.way, river_thames.way)
+							and bridge = 'yes'
+							and lower(name) like '%bridge%'
+							and lower(name) not like '%railway%'
+						group by line.name) inputs) features;
+
+---
+
+
+
+
 
 
 

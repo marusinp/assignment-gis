@@ -40,6 +40,8 @@ def routing():
 
 	cur = connect_to_db('gis')
 
+	cur.execute()
+
 	cur.execute("""
 	with src as (select vertices.id as src_id, point.osm_id, point.amenity, point.name
 						 from planet_osm_point as point
@@ -167,7 +169,13 @@ FROM (
 def heatmap_london():
 	cur = connect_to_db('london-db')
 
-	cur.execute("""
+	crime_type = request.args.get('crime_type')
+	row_limit = request.args.get('row_limit')
+
+
+
+
+	filtered_query = """
 		SELECT jsonb_build_object(
 				 'type', 'FeatureCollection',
 				 'features', jsonb_agg(feature)
@@ -176,12 +184,88 @@ FROM (SELECT jsonb_build_object(
 							 'type', 'Feature',
 							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
 							 'properties', jsonb_strip_nulls(jsonb_build_object(
--- 																								 'location', location,
 																								 'crime_type', crime_type
 -- 																								 'last_outcome_category', last_outcome_category
 																									 ))
 								 ) AS feature
-			FROM (SELECT geom, crime_type FROM crime_records limit 99999) inputs) features;
+			FROM (SELECT geom, crime_type
+						FROM crime_records
+						where crime_type = '{crime_type}'
+						limit {row_limit}) inputs) features;
+	""".format(crime_type=crime_type, row_limit=row_limit)
+
+	unfiltered_query = """
+		with cafes as (select osm_id, name, st_transform(way, 4326) as way
+							 from planet_osm_point
+							 where planet_osm_point.amenity = 'cafe'
+								 and name is not null
+							 limit 10)
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																								 -- 																								 'last_outcome_category', last_outcome_category
+																									 ))
+								 ) AS feature
+			FROM (SELECT crime_records.geom,crime_type, count(crime_type) as crime_type_count
+FROM crime_records
+			 right join cafes on ST_DWithin((way) :: geography, st_transform(crime_records.geom, 4326) :: geography, 200)
+			 where crime_type = 'Drugs'
+			 group by crime_records.geom, crime_type
+-- 					 SELECT geom, crime_type
+					 -- 						FROM crime_records
+					 -- 						where crime_type = 'Violence and sexual offences'
+					 -- 						limit 99999
+					 --
+					 ) inputs) features;
+	"""
+	# .format(row_limit=row_limit)
+
+	if crime_type == 'all':
+		cur.execute(unfiltered_query)
+	else:
+		cur.execute(filtered_query)
+
+	rows = cur.fetchall()
+	return json.dumps(rows[0][0])
+
+
+@app.route('/thames_bridges', methods=['GET'])
+def thames_bridges():
+	cur = connect_to_db('london-db')
+
+	cur.execute("""
+		with river_thames as (select st_union(way) as way from planet_osm_line where waterway = 'river'
+																																				 and name = 'River Thames')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'name', name,
+																								 'len', len
+																									 )
+									 )
+								 ) AS feature
+			FROM (select (array_agg(line.way)) [ 1 ]                                             as geom,
+									 line.name,
+									 (array_agg(st_length(st_transform(line.way, 4326) :: geography))) [ 1 ] as len
+						from planet_osm_line line,
+								 river_thames
+						where st_intersects(line.way, river_thames.way)
+							and bridge = 'yes'
+							and lower(name) like '%bridge%'
+							and lower(name) not like '%railway%'
+						group by line.name) inputs) features;
 	""")
 
 	rows = cur.fetchall()

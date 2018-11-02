@@ -9,6 +9,22 @@ var shownLayers = [];
 var shownSources = [];
 var shownMarkers = [];
 
+var crimeColorMap = {
+    'Bicycle theft': '#3bb2d0',
+    'Anti-social behaviour': '#fbb03b',
+    'Vehicle crime': '#223b53',
+    'Violence and sexual offences': '#e55e5e',
+    'Criminal damage and arson': '#407058',
+    'Possession of weapons': '#b96d40',
+    'Robbery': '#b43434',
+    'Burglary': '#610083',
+    'Drugs': '#563400',
+    'Public order': '#8590a7',
+    'Theft from the person': '##00cc00',
+    'Shoplifting': '#b5ddbd',
+    'Other theft': '#d4ca63'
+};
+
 
 $('#radius_form').submit(function () {
     console.log("TEST");
@@ -354,19 +370,19 @@ function heatmapLondonJS() {
     mapCleanUp();
 
     var requestData = {
-        // "lat": lat,
-        // "lng": lng,
-        // "radius": 1000,
+        "crime_type": $("#crimeTypeList").val(),
+        "row_limit": 999999
     };
 
 
-    // console.log("DATA  REQ " + JSON.stringify(requestData));
+    console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
         url: "/heatmap_london",
         data: requestData,
         type: "GET"
     }).done(function (data) {
 
+        console.log('done');
         map.flyTo({
             center: [-0.118092, 51.509865],
             zoom: 8
@@ -374,128 +390,31 @@ function heatmapLondonJS() {
 
         var geojson = JSON.parse(data);
 
-        // console.log(JSON.stringify(geojson));
+        console.log(JSON.stringify(geojson));
         shownSources.push('criminality');
         //
         map.addSource('criminality', {
             type: 'geojson',
             data: geojson,
         });
-        //
-        //
-        //     shownLayers.push('criminality');
-        //
-        //     map.addLayer({
-        //         id: 'criminality',
-        //         type: 'heatmap',
-        //         source: 'criminality',
-        //         maxzoom: 24,
-        //         paint: {
-        //             // increase weight as diameter breast height increases
-        //             // 'heatmap-weight': {
-        //             //     property: 'magnitude',
-        //             //     type: 'exponential',
-        //             //     stops: [
-        //             //         [0, 0],
-        //             //         [6.5, 1]
-        //             //     ]
-        //             // },
-        //             // increase intensity as zoom level increases
-        //             'heatmap-intensity': {
-        //                 stops: [
-        //                     [11, 1],
-        //                     [15, 3]
-        //                 ]
-        //             },
-        //             // assign color values be applied to points depending on their density
-        //             'heatmap-color': [
-        //                 'interpolate',
-        //                 ['linear'],
-        //                 ['heatmap-density'],
-        //                 0, 'rgba(236,222,239,0)',
-        //                 0.2, 'blue',
-        //                 0.4, 'yellow',
-        //                 0.6, 'orange',
-        //                 0.8, 'red'
-        //             ],
-        //             // increase radius as zoom increases
-        //             'heatmap-radius': {
-        //                 stops: [
-        //                     [11, 15],
-        //                     [15, 20]
-        //                 ]
-        //             },
-        //             // decrease opacity to transition into the circle layer
-        //             'heatmap-opacity': {
-        //                 default: 1,
-        //                 stops: [
-        //                     [14, 1],
-        //                     [15, 0]
-        //                 ]
-        //             },
-        //         }
-        //     }, 'waterway-label');
-        //
-        //     shownLayers.push('criminality-point');
-        //
-        //     map.addLayer({
-        //         id: 'criminality-point',
-        //         type: 'circle',
-        //         source: 'criminality',
-        //         minzoom: 14,
-        //         // paint: {
-        //         //     // increase the radius of the circle as the zoom level and dbh value increases
-        //         //     'circle-radius': {
-        //         //         property: 'magnitude',
-        //         //         type: 'exponential',
-        //         //         stops: [
-        //         //             [{zoom: 15, value: 1}, 5],
-        //         //             [{zoom: 15, value: 62}, 10],
-        //         //             [{zoom: 22, value: 1}, 20],
-        //         //             [{zoom: 22, value: 62}, 50],
-        //         //         ]
-        //         //     },
-        //         //     'circle-color': {
-        //         //         property: 'magnitude',
-        //         //         type: 'exponential',
-        //         //         stops: [
-        //         //             [0, 'rgba(236,222,239,0)'],
-        //         //             [1, 'blue'],
-        //         //             [2, 'yellow'],
-        //         //             [3, 'orange'],
-        //         //             [4, 'red'],
-        //         //             [5, 'darkred']
-        //         //             // [6, 'rgb(1,108,89)']
-        //         //         ]
-        //         //     },
-        //         //     'circle-stroke-color': 'white',
-        //         //     'circle-stroke-width': 1,
-        //         //     'circle-opacity': {
-        //         //         stops: [
-        //         //             [14, 0],
-        //         //             [15, 1]
-        //         //         ]
-        //         //     }
-        //         // }
-        //     }, 'waterway-label');
-        //
-        //
-        //     map.on('click', 'criminality-point', function (e) {
-        //         new mapboxgl.Popup()
-        //             .setLngLat(e.features[0].geometry.coordinates)
-        //             .setHTML('<b>Crime Type:</b> ' + e.features[0].properties.crime_type)
-        //             .addTo(map);
-        //     });
+
+
+        shownLayers.push('circle-criminality');
+
         map.addLayer({
-            'id': 'population',
+            'id': 'circle-criminality',
             'type': 'circle',
             'source': 'criminality',
-            // 'source-layer': 'sf2010',
             'paint': {
                 // make circles larger as the user zooms from z12 to z22
                 'circle-radius': {
-                    'base': 1.75,
-                    'stops': [[12, 2], [22, 180]]
+                    property: 'crime_type_count',
+                    type: 'exponential',
+                    'stops': [
+                        [1, 5],
+                        [15, 10],
+                        [30, 20]
+                    ]
                 },
                 // color circles by crime type, using a match expression
                 // https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-match
@@ -512,17 +431,25 @@ function heatmapLondonJS() {
                     'Burglary', '#610083',
                     'Drugs', '#563400',
                     'Public order', '#8590a7',
-                    'Theft from the person', '#ecdfc8',
+                    'Theft from the person', '#00cc00',
                     'Shoplifting', '#b5ddbd',
                     'Other theft', '#d4ca63',
                     /* other */ '#ccc'
                 ]
             }
         });
+
+        map.on('click', 'circle-criminality', function (e) {
+            new mapboxgl.Popup()
+                .setLngLat(e.features[0].geometry.coordinates)
+                .setHTML('<b>Count</b> ' + e.features[0].properties.crime_type_count)
+                .addTo(map);
+        });
     });
 
 
 }
+
 
 function routingJS() {
 
@@ -557,6 +484,7 @@ function routingJS() {
 
         map.addLayer({
             id: "routing_line",
+            type: "line",
             source: {
                 type: "geojson",
                 data: {
@@ -570,8 +498,62 @@ function routingJS() {
                     ]
                 }
             },
-            type: "line"
-        })
+            'paint': {
+                'line-width': 4,
+                // Use a get expression (https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-get)
+                // to set the line-color to a feature property value.
+                'line-color': 'red'
+            }
+        });
+    });
+
+}
+
+function thamesBridgesJS() {
+
+    mapCleanUp();
+    var requestData = {};
+    console.log("DATA  REQ " + JSON.stringify(requestData));
+    $.ajax({
+        url: '/thames_bridges',
+        data: requestData,
+        type: "GET"
+    }).done(function (data) {
+        // data = data.replace(/\\/g, '');
+        // console.log("data " + data);
+
+
+        // console.log(typeof data);
+        // var geojson = JSON.parse(data.slice(1, -1));
+        var geojson = JSON.parse(data);
+
+        map.flyTo({
+            center: [-0.21744179493470028, 51.47596429713249],
+            zoom: 10.826985437949697
+        });
+
+        // console.log('data JSON: ' + JSON.stringify(geojson));
+        shownLayers.push('bridges');
+        shownSources.push('bridges');
+
+        map.addSource('bridges', {
+            type: 'geojson',
+            data: geojson,
+        });
+
+
+        map.addLayer({
+            "id": "bridges",
+            "type": "line",
+            "source": "bridges",
+            'paint': {
+                'line-width': 4,
+                // Use a get expression (https://www.mapbox.com/mapbox-gl-js/style-spec/#expressions-get)
+                // to set the line-color to a feature property value.
+                'line-color': 'red'
+            }
+        });
+
     });
 
 }
