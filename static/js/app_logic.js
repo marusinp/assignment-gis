@@ -34,15 +34,17 @@ $('#radius_form').submit(function () {
 
 function mapCleanUp() {
 
+    for (let i = 0; i < shownMarkers.length; i++) {
+        shownMarkers[i].remove();
+    }
+
     for (let i = 0; i < shownLayers.length; i++) {
         map.removeLayer(shownLayers[i]);
     }
     for (let i = 0; i < shownSources.length; i++) {
         map.removeSource(shownSources[i]);
     }
-    for (let i = 0; i < shownMarkers.length; i++) {
-        shownMarkers[i].remove();
-    }
+
     shownLayers = [];
     shownSources = [];
     shownMarkers = [];
@@ -469,6 +471,7 @@ function routingJS() {
         console.log("data " + data);
 
         data = JSON.parse(data);
+
         var points = data['points'].replace(/\\"/g, '"');
         var route = data['route'].replace(/\\"/g, '"');
 
@@ -537,6 +540,7 @@ function routingJS() {
 function thamesBridgesJS() {
 
     mapCleanUp();
+
     var requestData = {};
     console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
@@ -551,6 +555,7 @@ function thamesBridgesJS() {
         // console.log(typeof data);
         // var geojson = JSON.parse(data.slice(1, -1));
         var geojson = JSON.parse(data);
+        console.log(JSON.stringify(geojson));
 
         map.flyTo({
             center: [-0.21744179493470028, 51.47596429713249],
@@ -578,6 +583,23 @@ function thamesBridgesJS() {
                 'line-color': 'red'
             }
         });
+
+        geojson.features.forEach(function (marker) {
+
+            // create a HTML element for each feature
+            var el = document.createElement('div');
+            el.className = 'marker';
+
+            // make a marker for each feature and add to the map
+            var marker = new mapboxgl.Marker(el)
+                .setLngLat(marker.geometry.coordinates[0])
+                .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
+                    .setHTML('<b> Bridge name: </b>' + marker.properties.name
+                        + '<br> <b> Bridge length: </b>' + Math.round(parseFloat(marker.properties.len) * 100) / 100 +' m'))
+                .addTo(map);
+            shownMarkers.push(marker);
+        });
+
 
     });
 
