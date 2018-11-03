@@ -752,21 +752,44 @@ FROM (SELECT jsonb_build_object(
 																								 'crime_type_count', crime_type_count
 																									 ))
 								 ) AS feature
-			FROM (SELECT crime_records.geom, crime_type,count(crime_type) as crime_type_count
+			FROM (SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
 						FROM crime_records
 									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
-			where crime_type = 'Robbery'
-						group by crime_records.geom,crime_type
-					 ) inputs) features;
+						where crime_type = 'Robbery'
+						group by crime_records.geom, crime_type) inputs) features;
 
 ------
---bez indexu: 	Startup Cost: 11370231.18
---     					Total Cost: 11370231.32
 
--- s indexom: Startup Cost: 9048.99
---     				Total Cost: 9049.13
+with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = 'London Borough of Lambeth')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																									 ))
+								 ) AS feature
+			FROM (with borough as (select st_transform(way, 4326) as geom
+														 from planet_osm_polygon
+														 where name = 'London Borough of Lambeth')
+			SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
+			FROM crime_records
+						 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+			group by crime_records.geom, crime_type) inputs) features;
 
-
+with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = 'London Borough of Lambeth')
+SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
+FROM crime_records
+			 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+group by crime_records.geom, crime_type;
 ----
 
 

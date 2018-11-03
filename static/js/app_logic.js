@@ -82,7 +82,7 @@ function initMap(lat, lng, zoom) {
     mapboxgl.accessToken = 'pk.eyJ1IjoibWFydXNpbnAiLCJhIjoiY2puMXh0emFsMjN6bzN2cGx1MHg1aGlxYyJ9.4_us1_f4fGyKvFPnyYp1gw';
     map = new mapboxgl.Map({
         container: 'map', // container id
-        style: 'mapbox://styles/mapbox/streets-v9', // stylesheet location
+        style: 'mapbox://styles/mapbox/streets-v10', // stylesheet location
         center: [lng, lat], // starting position [lng, lat]
         zoom: 10// starting zoom
     });
@@ -375,7 +375,7 @@ function heatmapLondonJS() {
         "crime_type": $("#crimeTypeList").val(),
         "borough": borough
     };
-    var coords, zoom
+    var coords, zoom;
     if (borough === 'London Borough of Lambeth') {
         coords = {"lng": -0.1200575547209155, "lat": 51.456230797409944};
         zoom = 10.8;

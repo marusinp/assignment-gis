@@ -28,6 +28,7 @@ We focused on queries somehow related to student's everyday life in the big city
 2. Find shortest path from dorm to work that includes chosen cafe (mornings are tough and cocaine illegal :pig_nose: ).
 3. Earthquake heatmap of Italy (part of everyday life in Italy, sorta).
 4. Criminality map of London :guardsman: :feelsgood: - some interesting correlations (thug life in tha bloody UK :uk:).
+5. Find every bridge crossing River Thames :ship: located in London :pushpin: and calculate its length.
 
 // other usecases can appear occasionally :bust_in_silhouette: :eyes: 
 
