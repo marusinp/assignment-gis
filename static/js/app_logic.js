@@ -201,7 +201,7 @@ function radiusJS() {
             el.className = 'marker';
 
             // make a marker for each feature and add to the map
-            var marker = new mapboxgl.Marker(el)
+            marker = new mapboxgl.Marker(el)
                 .setLngLat(marker.geometry.coordinates)
                 .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
                     .setHTML(fillPopup(marker.properties)))
@@ -370,24 +370,36 @@ function heatmapItalyJS() {
 function heatmapLondonJS() {
 
     mapCleanUp();
-
+    var borough = $("#boroughList").val();
     var requestData = {
         "crime_type": $("#crimeTypeList").val(),
-        "row_limit": 999999
+        "borough": borough
     };
-
-
+    var coords, zoom
+    if (borough === 'London Borough of Lambeth') {
+        coords = {"lng": -0.1200575547209155, "lat": 51.456230797409944};
+        zoom = 10.8;
+    }
+    else if (borough === 'City of Westminster') {
+        coords = {"lng": -0.1333328, "lat": 51.499998};
+        zoom = 10.8;
+    } else if (borough === 'London Borough of Camden') {
+        coords = {"lng": -0.166666, "lat": 51.5333312};
+        zoom = 10.8;
+    }
     console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
         url: "/heatmap_london",
         data: requestData,
         type: "GET"
     }).done(function (data) {
+        console.log(data);
+
 
         console.log('done');
         map.flyTo({
-            center: [-0.118092, 51.509865],
-            zoom: 8
+            center: coords,
+            zoom: zoom
         });
 
         var geojson = JSON.parse(data);
@@ -412,10 +424,10 @@ function heatmapLondonJS() {
                 'circle-radius': {
                     property: 'crime_type_count',
                     type: 'exponential',
+
                     'stops': [
-                        [1, 5],
-                        [15, 10],
-                        [30, 20]
+                        [1, 6],
+                        [80, 16]
                     ]
                 },
                 // color circles by crime type, using a match expression
@@ -432,19 +444,22 @@ function heatmapLondonJS() {
                     'Robbery', '#b43434',
                     'Burglary', '#610083',
                     'Drugs', '#563400',
-                    'Public order', '#8590a7',
+                    'Public order', '#f38020',
                     'Theft from the person', '#00cc00',
                     'Shoplifting', '#b5ddbd',
                     'Other theft', '#d4ca63',
+                    'all', '#86898c',
                     /* other */ '#ccc'
-                ]
+                ],
+                'circle-stroke-color': 'black',
+                'circle-stroke-width': 1
             }
         });
 
         map.on('click', 'circle-criminality', function (e) {
             new mapboxgl.Popup()
                 .setLngLat(e.features[0].geometry.coordinates)
-                .setHTML('<b>Count</b> ' + e.features[0].properties.crime_type_count)
+                .setHTML('<b>' + e.features[0].properties.crime_type_count + '</b>' + ' criminal events of selected type took place here!')
                 .addTo(map);
         });
     });
@@ -498,7 +513,7 @@ function routingJS() {
             el.className = 'marker';
 
             // make a marker for each feature and add to the map
-            var marker = new mapboxgl.Marker(el)
+            marker = new mapboxgl.Marker(el)
                 .setLngLat(marker.geometry.coordinates)
                 .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
                     .setHTML('<h3>' + marker.properties.name + '</h3>'))
@@ -588,14 +603,15 @@ function thamesBridgesJS() {
 
             // create a HTML element for each feature
             var el = document.createElement('div');
-            el.className = 'marker';
-
+            el.className = 'marker-bridge';
+            // marker.anchor = 'up';
+            let marker_pos_offset = 0.001;
             // make a marker for each feature and add to the map
-            var marker = new mapboxgl.Marker(el)
-                .setLngLat(marker.geometry.coordinates[0])
+            marker = new mapboxgl.Marker(el)
+                .setLngLat([marker.geometry.coordinates[0][0], marker.geometry.coordinates[0][1]])
                 .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
                     .setHTML('<b> Bridge name: </b>' + marker.properties.name
-                        + '<br> <b> Bridge length: </b>' + Math.round(parseFloat(marker.properties.len) * 100) / 100 +' m'))
+                        + '<br> <b> Bridge length: </b>' + Math.round(parseFloat(marker.properties.len) * 100) / 100 + ' m'))
                 .addTo(map);
             shownMarkers.push(marker);
         });

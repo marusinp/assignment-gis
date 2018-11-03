@@ -59,6 +59,7 @@
         <h2>.query n.4: criminality in london</h2>
 
         <p>TODO description</p>
+
         <select id="crimeTypeList" name="crimeTypeList">
             <option value="all" selected="selected">All types</option>
             <option value="Vehicle crime">Vehicle crime</option>
@@ -78,9 +79,16 @@
             <option value="Other theft">Other theft</option>
         </select>
 
+        <select id="boroughList" name="boroughList">
+            <option value="all" selected="selected">All boroughs</option>
+            <option value="London Borough of Camden">London Borough of Camden</option>
+            <option value="City of Westminster">City of Westminster</option>
+            <option value="London Borough of Lambeth">London Borough of Lambeth</option>
+        </select>
+
         <input type="button" id="btnLondon" class="btn btn-primary" value="London Heatmap" onclick="heatmapLondonJS()">
 
-        <h2>.query n.5: bridges crossing river thames </h2>
+        <h2>.query n.5: bridges crossing river thames</h2>
 
         <p>TODO description</p>
         <input type="button" id="btnBridges" class="btn btn-primary" value="Show Bridges" onclick="thamesBridgesJS()">

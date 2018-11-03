@@ -124,7 +124,7 @@ FROM (SELECT jsonb_build_object(
 						""".format(src=src, stop=stop, dst=dst))
 
 	rows = cur.fetchall()
-	response = {'points': json.dumps(rows[0][0],ensure_ascii=False)}
+	response = {'points': json.dumps(rows[0][0], ensure_ascii=False)}
 
 	src_id, stop_id, dst_id = rows[0][0]["features"][0]["properties"]["vertex_id"], \
 							  rows[0][0]["features"][1]["properties"]["vertex_id"], \
@@ -154,7 +154,6 @@ FROM (SELECT jsonb_build_object(
 
 	rows = cur.fetchall()
 	response['route'] = json.dumps(rows[0][0], ensure_ascii=False)
-
 
 	return json.dumps(response)
 
@@ -243,34 +242,18 @@ FROM (
 def heatmap_london():
 	cur = connect_to_db('london-db')
 
+	borough = request.args.get('borough')
 	crime_type = request.args.get('crime_type')
 	row_limit = request.args.get('row_limit')
 
-	filtered_query = """
-		SELECT jsonb_build_object(
-				 'type', 'FeatureCollection',
-				 'features', jsonb_agg(feature)
-					 )
-FROM (SELECT jsonb_build_object(
-							 'type', 'Feature',
-							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
-							 'properties', jsonb_strip_nulls(jsonb_build_object(
-																								 'crime_type', crime_type
--- 																								 'last_outcome_category', last_outcome_category
-																									 ))
-								 ) AS feature
-			FROM (SELECT geom, crime_type
-						FROM crime_records
-						where crime_type = '{crime_type}'
-						limit {row_limit}) inputs) features;
-	""".format(crime_type=crime_type, row_limit=row_limit)
+	cur.execute("""CREATE INDEX if not exists gist_geom_crime_records
+	ON crime_records
+	USING GIST (st_transform(geom, 4326));
+	""")
 
-	unfiltered_query = """
-		with cafes as (select osm_id, name, st_transform(way, 4326) as way
-							 from planet_osm_point
-							 where planet_osm_point.amenity = 'cafe'
-								 and name is not null
-							 limit 10)
+	borough_crime_type_query = """with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = '{borough}')
 SELECT jsonb_build_object(
 				 'type', 'FeatureCollection',
 				 'features', jsonb_agg(feature)
@@ -281,27 +264,67 @@ FROM (SELECT jsonb_build_object(
 							 'properties', jsonb_strip_nulls(jsonb_build_object(
 																								 'crime_type', crime_type,
 																								 'crime_type_count', crime_type_count
-																								 -- 																								 'last_outcome_category', last_outcome_category
 																									 ))
 								 ) AS feature
-			FROM (SELECT crime_records.geom,crime_type, count(crime_type) as crime_type_count
-FROM crime_records
-			 right join cafes on ST_DWithin((way) :: geography, st_transform(crime_records.geom, 4326) :: geography, 200)
-			 where crime_type = 'Drugs'
-			 group by crime_records.geom, crime_type
--- 					 SELECT geom, crime_type
-					 -- 						FROM crime_records
-					 -- 						where crime_type = 'Violence and sexual offences'
-					 -- 						limit 99999
-					 --
+			FROM (SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
+						FROM crime_records
+									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+			where crime_type = '{crime_type}'
+						group by crime_records.geom, crime_type
 					 ) inputs) features;
-	"""
-	# .format(row_limit=row_limit)
+	""".format(crime_type=crime_type, borough=borough)
 
-	if crime_type == 'all':
-		cur.execute(unfiltered_query)
-	else:
-		cur.execute(filtered_query)
+	borough_query = """with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = '{borough}')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime-type','all',
+																								 'crime_type_count', crime_type_count
+																									 ))
+								 ) AS feature
+			FROM (SELECT crime_records.geom, count(crime_type) as crime_type_count
+						FROM crime_records
+									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+		  
+						group by crime_records.geom
+					 ) inputs) features;
+	""".format(borough=borough)
+
+	color_query = """with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = '{borough}')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																									 ))
+								 ) AS feature
+			FROM (SELECT crime_records.geom, crime_type,count(crime_type) as crime_type_count
+						FROM crime_records
+									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+						group by crime_records.geom,crime_type
+					 ) inputs) features;
+	""".format(borough=borough)
+
+	if crime_type != 'all' and borough != 'all':
+		cur.execute(borough_crime_type_query)
+	elif crime_type == 'all' and borough != 'all':
+		cur.execute(borough_query)
+	elif crime_type == 'color' and borough != 'all':
+		cur.execute(color_query)
 
 	rows = cur.fetchall()
 	return json.dumps(rows[0][0])

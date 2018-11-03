@@ -639,8 +639,10 @@ from crime_records;
 
 ----
 
-select count(distinct latitude)
-from crime_records;
+
+SELECT *
+FROM crime_records
+WHERE crime_records IS NULL;
 
 -- visualisation test
 
@@ -676,18 +678,94 @@ FROM (SELECT jsonb_build_object(
 					 ) inputs) features;
 
 ------
+--bez indexu: 	Startup Cost: 11370231.18
+--     					Total Cost: 11370231.32
+
+-- s indexom: Startup Cost: 9048.99
+--     				Total Cost: 9049.13
 
 
-with cafes as (select osm_id, name, st_transform(way, 4326) as way
-							 from planet_osm_point
-							 where planet_osm_point.amenity = 'cafe'
-								 and name is not null
-							 limit 5)
+CREATE INDEX gist_geog_crime_records
+	ON crime_records
+	USING GIST (geography(st_transform(geom, 4326)));
+
+drop index gist_geog_crime_records;
+
+-----
+
+select st_transform(way, 4326) as geom
+from planet_osm_polygon
+where name = 'London Borough of Camden';
+
+select st_transform(way, 4326)
+from planet_osm_polygon
+where name = 'City of Westminster';
+
+select st_transform(way, 4326), *
+from planet_osm_polygon
+where lower(name) like '%lambeth%';
+
+select st_transform(way, 4326)
+from planet_osm_polygon
+where name = 'London Borough of Lambeth';
+
+--------
+
+CREATE INDEX if not exists gist_geom_crime_records
+	ON crime_records
+	USING GIST (st_transform(geom, 4326));
+
+-- drop index gist_geom_crime_records;
+
+-- bez indexu
+-- Startup Cost: 2448581.93
+--     Total Cost: 2448636.21
+
+-- s indexom: Startup Cost: 48097.96
+--     Total Cost: 48152.24
+
+explain (format yaml, analyze true)
+
+with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = 'London Borough of Lambeth')
 SELECT crime_records.geom, count(crime_type) as crime_type_count
 FROM crime_records
-			 right join cafes on ST_DWithin((way) :: geography, st_transform(crime_records.geom, 4326) :: geography, 100)
-where crime_type = 'Drugs'
-group by crime_records.geom, crime_type;
+			 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+group by crime_records.geom;
+
+-----
+
+
+with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = 'London Borough of Lambeth')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																									 ))
+								 ) AS feature
+			FROM (SELECT crime_records.geom, crime_type,count(crime_type) as crime_type_count
+						FROM crime_records
+									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+			where crime_type = 'Robbery'
+						group by crime_records.geom,crime_type
+					 ) inputs) features;
+
+------
+--bez indexu: 	Startup Cost: 11370231.18
+--     					Total Cost: 11370231.32
+
+-- s indexom: Startup Cost: 9048.99
+--     				Total Cost: 9049.13
+
 
 ----
 
