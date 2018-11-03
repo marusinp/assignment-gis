@@ -290,5 +290,6 @@ pip-selfcheck.json
 gis_tests.sql
 formatter.json
 old-examples/
+data/
 
 # End of https://www.gitignore.io/api/macos,python,pycharm,jetbrains
