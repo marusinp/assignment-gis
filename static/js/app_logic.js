@@ -32,10 +32,14 @@ $('#radius_form').submit(function () {
 });
 
 
-function mapCleanUp() {
+function mapCleanUp(excludeFlag) {
 
-    for (let i = 0; i < shownMarkers.length; i++) {
-        shownMarkers[i].remove();
+    if (excludeFlag === '') {
+        for (let i = 0; i < shownMarkers.length; i++) {
+            shownMarkers[i].remove();
+        }
+
+        shownMarkers = [];
     }
 
     for (let i = 0; i < shownLayers.length; i++) {
@@ -47,7 +51,7 @@ function mapCleanUp() {
 
     shownLayers = [];
     shownSources = [];
-    shownMarkers = [];
+
 }
 
 function addCoordsAndZoomListeners(map) {
@@ -166,51 +170,54 @@ var createGeoJSONCircle = function (center, radiusInKm, points) {
     };
 };
 
+function pickLocHook(e) {
+    lng = e.lngLat.lng;
+    lat = e.lngLat.lat;
+
+    console.log(lng);
+    console.log(lat);
+    map.getCanvas().style.cursor = 'pointer';
+
+    var geojson = [
+        {
+            type: 'Feature',
+            geometry: {
+                type: 'Point',
+                coordinates: [lng, lat]
+            }
+        }
+    ];
+
+    geojson.forEach(function (marker) {
+
+        // create a HTML element for each feature
+        var el = document.createElement('div');
+        el.className = 'marker-loc';
+
+        // make a marker for each feature and add to the map
+        marker = new mapboxgl.Marker(el)
+            .setLngLat(marker.geometry.coordinates)
+            .addTo(map);
+        shownMarkers.push(marker);
+
+    });
+
+    //event handler deletes itself
+    map.off('click', pickLocHook);
+}
+
 
 function radiusPickLocJS() {
     mapCleanUp();
 
     map.getCanvas().style.cursor = 'crosshair';
-
-
-    map.on('click', function (e) {
-        lng = e.lngLat.lng;
-        lat = e.lngLat.lat;
-
-        console.log(lng);
-        console.log(lat);
-        map.getCanvas().style.cursor = 'pointer';
-
-        var geojson = [
-            {
-                type: 'Feature',
-                geometry: {
-                    type: 'Point',
-                    coordinates: [lng, lat]
-                }
-            }
-        ];
-
-        geojson.forEach(function (marker) {
-
-            // create a HTML element for each feature
-            var el = document.createElement('div');
-            el.className = 'marker-loc';
-
-            // make a marker for each feature and add to the map
-            marker = new mapboxgl.Marker(el)
-                .setLngLat(marker.geometry.coordinates)
-                .addTo(map);
-            shownMarkers.push(marker);
-        });
-    });
-
+    map.on('click', pickLocHook);
 
 }
 
 function radiusJS() {
 
-    mapCleanUp();
+    mapCleanUp("marker-loc");
 
     var requestData = {
         "lat": lat,
