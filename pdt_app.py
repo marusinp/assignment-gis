@@ -38,7 +38,7 @@ def routing():
 
 	logger.debug("src: " + str(src))
 
-	cur = connect_to_db('gis')
+	cur = connect_to_db('london-db')
 
 	# 	old_query = """
 	# 	with src as (select st_transform(point.way, 4326) as way,

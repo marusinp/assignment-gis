@@ -519,11 +519,18 @@ function heatmapLondonJS() {
 function routingJS() {
 
     mapCleanUp();
+
+
+
+
     var requestData = {
-        "src": "lekáreň sv. michala",
-        "stop": "santal",
-        "dst": "slovenská sporiteľňa"
+        "src": $("#srcList").val().toLowerCase().replace("'","''"),
+        "stop": $("#stopList").val().toLowerCase().replace("'","''"),
+        "dst": $("#dstList").val().toLowerCase().replace("'","''"),
     };
+
+
+
     console.log("DATA  REQ " + JSON.stringify(requestData));
     $.ajax({
         url: "/routing",

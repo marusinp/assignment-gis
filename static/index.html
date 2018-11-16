@@ -48,8 +48,27 @@
 
         <h2>.query n.2: routing</h2>
 
-        <p>Following query finds the shortest path from TODO to TODO that includes one stop.
-            You can select stop from the list.</p>
+        <p>Following query finds the shortest path from start to finish that includes one stop.
+            You can select each road node from the lists bellow.</p>
+
+        <select id="srcList" name="srcList">
+            <option value="St Mary's Church" selected="selected">St Mary's Church ⛪️</option>
+            <option value="Natural History Museum / Cromwell Road">Natural History Museum 🦕</option>
+            <option value="The Bat and Ball">The Bat and Ball 🍺</option>
+        </select>
+
+        <select id="stopList" name="stopList">
+            <option value="Tower of London" selected="selected">Tower of London 🏰️</option>
+            <option value="Stratford Library">Stratford Library 📚</option>
+            <option value="St Mary Of Eton Church">St Mary Of Eton Church ⛪️</option>
+        </select>
+
+         <select id="dstList" name="dstList">
+            <option value="Olive and Lemon" selected="selected">Olive and Lemon ☕️️</option>
+            <option value="Tesco Express">Tesco Express 🛒 </option>
+            <option value="Stratford City Bus Station">Stratford City Bus Station 🚌</option>
+        </select>
+
 
         <input type="button" id="btnRouting" class="btn btn-primary" value="Routing" onclick="routingJS()">
         <h2>.query n.3: earthquakes in italy</h2>

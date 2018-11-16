@@ -313,7 +313,7 @@ where lower(name) = 'lekáreň sv. michala'
 
 limit 3;
 
-explain (format yaml, analyze true) with src as (select st_transform(point.way, 4326) as way,
+with src as (select st_transform(point.way, 4326) as way,
 																												vertices.id                   as src_id,
 																												point.osm_id,
 																												point.amenity,
@@ -321,7 +321,7 @@ explain (format yaml, analyze true) with src as (select st_transform(point.way, 
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
-																								 where lower(name) = 'lekáreň sv. michala'
+																								 where lower(name) =  'olive and lemon'
 																								 limit 1),
 																				 stop as (select st_transform(point.way, 4326) as way,
 																												 vertices.id                   as stop_id,
@@ -331,7 +331,7 @@ explain (format yaml, analyze true) with src as (select st_transform(point.way, 
 																									from planet_osm_point as point
 																												 JOIN ways_vertices_pgr as vertices
 																													 ON (point.osm_id = vertices.osm_id)
-																									where lower(name) = 'santal'
+																									where lower(name) = 'tower of london'
 																									limit 1),
 																				 dst as (select st_transform(point.way, 4326) as way,
 																												vertices.id                   as dst_id,
@@ -341,7 +341,7 @@ explain (format yaml, analyze true) with src as (select st_transform(point.way, 
 																								 from planet_osm_point as point
 																												JOIN ways_vertices_pgr as vertices
 																													ON (point.osm_id = vertices.osm_id)
-																								 where lower(name) = 'slovenská sporiteľňa'
+																								 where lower(name) = 'natural history museum / cromwell road'
 																								 limit 1)
 																		select ST_AsGeoJSON(st_union((merged_route.the_geom))),
 																					 st_asgeojson(st_union((src.way))),
@@ -368,7 +368,14 @@ explain (format yaml, analyze true) with src as (select st_transform(point.way, 
 																				 src,
 																				 stop,
 																				 dst;
+---
 
+select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
+from planet_osm_point as point
+			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+where lower(name) like '%centre%';
+
+---
 
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
@@ -378,12 +385,15 @@ limit 1;
 ----
 
 
+
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
 			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-where point.name like '%námestie%';
+where point.name is not null and amenity is not null;
 
 ----
+
+
 
 explain (format yaml, analyze true) select vertices.id as src_id, point.osm_id, point.amenity, point.name
 																		from planet_osm_point as point
