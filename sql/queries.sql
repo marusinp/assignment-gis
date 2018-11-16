@@ -297,9 +297,9 @@ FROM (SELECT jsonb_build_object(
 									 point.name
 						from planet_osm_point as point
 									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						where lower(name) = 'lekáreň sv. michala'
-							 or lower(name) = 'santal'
-							 or lower(name) = 'slovenská sporiteľňa'
+						where lower(name) = 'natural history museum'
+							 or lower(name) = 'tower of london'
+							 or lower(name) = 'olive and lemon'
 
 						limit 3) inputs) features;
 
@@ -376,7 +376,54 @@ from planet_osm_point as point
 where lower(name) like '%centre%';
 
 ---
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'name', name,
+																								 'vertex_id',vertex_id
+																									 ))
+								 ) AS feature
+			FROM (select distinct ON(point.name) point.name,
+									 st_transform(point.way, 4326) as way,
+									 vertices.id                   as vertex_id,
+									 point.osm_id
+						from planet_osm_point as point
+									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+						where (name) = 'The Bat and Ball'
+							 or (name) = 'Tower of London'
+							 or (name) = 'Stratford City Bus Station'
 
+
+					 ) inputs) features;
+---
+
+
+select ST_AsGeoJSON(st_union((merged_route.the_geom)))
+																		from (SELECT ways.the_geom
+																					from pgr_dijkstra('SELECT gid as id, source, target,
+							 length as cost FROM ways',
+																														{src_id},
+																														{stop_id},
+																														directed := false
+																									 ) src_stop_dij
+																								 JOIN ways ON (src_stop_dij.edge = ways.gid)
+																					union
+																					SELECT ways.the_geom
+																					from pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+																														{stop_id},
+																														{dst_id},
+																														directed := false
+																									 ) stop_dst_dij
+																								 JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
+
+---
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
 			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)

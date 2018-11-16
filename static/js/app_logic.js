@@ -34,13 +34,13 @@ $('#radius_form').submit(function () {
 
 function mapCleanUp(excludeFlag) {
 
-    if (excludeFlag === '') {
+    // if (excludeFlag === '') {
         for (let i = 0; i < shownMarkers.length; i++) {
             shownMarkers[i].remove();
         }
 
         shownMarkers = [];
-    }
+    // }
 
     for (let i = 0; i < shownLayers.length; i++) {
         map.removeLayer(shownLayers[i]);
@@ -521,12 +521,10 @@ function routingJS() {
     mapCleanUp();
 
 
-
-
     var requestData = {
-        "src": $("#srcList").val().toLowerCase().replace("'","''"),
-        "stop": $("#stopList").val().toLowerCase().replace("'","''"),
-        "dst": $("#dstList").val().toLowerCase().replace("'","''"),
+        "src": $("#srcList").val(),
+        "stop": $("#stopList").val(),
+        "dst": $("#dstList").val(),
     };
 
 
@@ -577,6 +575,7 @@ function routingJS() {
         });
 
         // console.log('data JSON: ' + JSON.stringify(geojson));
+
         shownLayers.push('routing_line');
         shownSources.push('routing_line');
 

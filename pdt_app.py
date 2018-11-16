@@ -110,25 +110,26 @@ FROM (SELECT jsonb_build_object(
 																								 'vertex_id',vertex_id
 																									 ))
 								 ) AS feature
-			FROM (select st_transform(point.way, 4326) as way,
+			FROM (select distinct ON(point.name) point.name,
+									 st_transform(point.way, 4326) as way,
 									 vertices.id                   as vertex_id,
-									 point.osm_id,
-									 point.name
+									 point.osm_id
 						from planet_osm_point as point
 									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-						where lower(name) = '{src}'
-							 or lower(name) = '{stop}'
-							 or lower(name) = '{dst}'
-
-						limit 3) inputs) features;
+						where (name) = '{src}'
+							 or (name) = '{stop}'
+							 or (name) = '{dst}'
+						) inputs) features;
 						""".format(src=src, stop=stop, dst=dst))
 
 	rows = cur.fetchall()
 	response = {'points': json.dumps(rows[0][0], ensure_ascii=False)}
 
-	src_id, stop_id, dst_id = rows[0][0]["features"][0]["properties"]["vertex_id"], \
-							  rows[0][0]["features"][1]["properties"]["vertex_id"], \
-							  rows[0][0]["features"][2]["properties"]["vertex_id"]
+	names = [e["properties"]["name"] for e in rows[0][0]["features"]]
+
+	src_id, stop_id, dst_id = rows[0][0]["features"][names.index(src)]["properties"]["vertex_id"], \
+							  rows[0][0]["features"][names.index(stop)]["properties"]["vertex_id"], \
+							  rows[0][0]["features"][names.index(dst)]["properties"]["vertex_id"]
 
 	cur.execute("""
 		select ST_AsGeoJSON(st_union((merged_route.the_geom)))
