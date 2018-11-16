@@ -555,7 +555,7 @@ function routingJS() {
 
         map.flyTo({
             center: points_geojson.features[0].geometry.coordinates,
-            zoom: 16
+            zoom: 10
         });
 
 

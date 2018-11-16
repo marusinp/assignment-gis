@@ -373,7 +373,7 @@ with src as (select st_transform(point.way, 4326) as way,
 select vertices.id as vertex_id, point.osm_id, point.amenity, point.name
 from planet_osm_point as point
 			 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-where lower(name) like '%centre%';
+where lower(name) is not null;
 
 ---
 SELECT jsonb_build_object(
@@ -395,7 +395,7 @@ FROM (SELECT jsonb_build_object(
 						from planet_osm_point as point
 									 JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
 						where (name) = 'The Bat and Ball'
-							 or (name) = 'Tower of London'
+							 or (name) =  'St Mary''s Church'
 							 or (name) = 'Stratford City Bus Station'
 
 
