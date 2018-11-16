@@ -524,7 +524,7 @@ where ST_DWithin(st_transform(ways.the_geom, 4326) :: geography,
 
 ----
 
-explain (format yaml, analyze true) with src as (select vertices.id as src_id,
+ with src as (select vertices.id as src_id,
 																												point.osm_id,
 																												point.amenity,
 																												point.name,

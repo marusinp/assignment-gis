@@ -98,7 +98,7 @@ function initMap(lat, lng, zoom) {
     document.getElementById('zoomlevel').innerHTML = map.getZoom();
 
     addCoordsAndZoomListeners(map);
-    debugOnClick();
+    // debugOnClick();
 
 
 }
@@ -166,6 +166,47 @@ var createGeoJSONCircle = function (center, radiusInKm, points) {
     };
 };
 
+
+function radiusPickLocJS() {
+    mapCleanUp();
+
+    map.getCanvas().style.cursor = 'crosshair';
+
+
+    map.on('click', function (e) {
+        lng = e.lngLat.lng;
+        lat = e.lngLat.lat;
+
+        console.log(lng);
+        console.log(lat);
+        map.getCanvas().style.cursor = 'pointer';
+
+        var geojson = [
+            {
+                type: 'Feature',
+                geometry: {
+                    type: 'Point',
+                    coordinates: [lng, lat]
+                }
+            }
+        ];
+
+        geojson.forEach(function (marker) {
+
+            // create a HTML element for each feature
+            var el = document.createElement('div');
+            el.className = 'marker-loc';
+
+            // make a marker for each feature and add to the map
+            marker = new mapboxgl.Marker(el)
+                .setLngLat(marker.geometry.coordinates)
+                .addTo(map);
+            shownMarkers.push(marker);
+        });
+    });
+
+
+}
 
 function radiusJS() {
 

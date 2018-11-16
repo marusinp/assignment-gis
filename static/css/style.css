@@ -47,6 +47,15 @@ body {
 	cursor: pointer;
 }
 
+.marker-loc {
+	background-image: url('circle.png');
+	background-size: cover;
+	width: 50px;
+	height: 50px;
+	border-radius: 50%;
+	cursor: pointer;
+}
+
 .marker-bridge {
 	background-image: url('transparent-marker.png');
 	background-size: cover;
