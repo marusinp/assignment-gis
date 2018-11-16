@@ -34,13 +34,17 @@ $('#radius_form').submit(function () {
 
 function mapCleanUp(excludeFlag) {
 
-    // if (excludeFlag === '') {
+    if (excludeFlag === undefined) {
         for (let i = 0; i < shownMarkers.length; i++) {
             shownMarkers[i].remove();
         }
-
         shownMarkers = [];
-    // }
+    } else {
+        for (let i = 1; i < shownMarkers.length; i++) {
+            shownMarkers[i].remove();
+        }
+        shownMarkers = [shownMarkers[0]];
+    }
 
     for (let i = 0; i < shownLayers.length; i++) {
         map.removeLayer(shownLayers[i]);
@@ -170,9 +174,9 @@ var createGeoJSONCircle = function (center, radiusInKm, points) {
     };
 };
 
-function pickLocHook(e) {
-    lng = e.lngLat.lng;
-    lat = e.lngLat.lat;
+function pickLocHook(event) {
+    lng = event.lngLat.lng;
+    lat = event.lngLat.lat;
 
     console.log(lng);
     console.log(lat);
@@ -208,7 +212,13 @@ function pickLocHook(e) {
 
 
 function radiusPickLocJS() {
+
     mapCleanUp();
+
+    map.flyTo({
+        center: [17.106794, 48.145374],
+        zoom: 15
+    });
 
     map.getCanvas().style.cursor = 'crosshair';
     map.on('click', pickLocHook);
@@ -526,7 +536,6 @@ function routingJS() {
         "stop": $("#stopList").val(),
         "dst": $("#dstList").val(),
     };
-
 
 
     console.log("DATA  REQ " + JSON.stringify(requestData));
