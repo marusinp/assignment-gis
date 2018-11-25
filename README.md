@@ -24,6 +24,11 @@ Build a map-based application, which lets the user see geo-based data on a map a
 **Application description**: Web-based application demonstrating advanced geospatial queries (result visualisation included).
 
 We focused on queries somehow related to everyday life in the big city:
+1. Find all near-by cafés :coffee: and/or restaurants :ramen: (based  on current position or position chosen by user).
+2. Find shortest path from dorm to work that includes chosen cafe (mornings are tough and cocaine illegal :pig_nose: ).
+3. Earthquake heatmap of Italy (part of everyday life in Italy, sorta).
+4. Criminality map of London :guardsman: - some interesting correlations (thug life in tha bloody UK 🇬🇧).
+5. Find every bridge crossing River Thames :ship: located in London :pushpin: and calculate its length.
 
 ### List of usecases covered:
 
@@ -53,9 +58,10 @@ Insert distance (in meters). After submission you'll see all nearby cafés withi
 You can then select any of them for more information by clicking on the marker.
 
 **Query:**
-```postgresql
+
+```sql
 with poi as (
-	SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
+    SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
     where amenity = 'cafe'
     and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, radius)
 )
@@ -84,4 +90,142 @@ SELECT jsonb_build_object(
   ) features;
 ``` 
 
+### 2. Route planner for a trip in London (routing w/ a middleman)
 
+
+
+Following query finds the shortest path from start to finish that includes one stop. You can select each road node from the lists bellow. 
+
+We implemented shortest path search w/ a middleman - final path includes not only  points A (start) and B (destination), but also point C, lying on the route somewhere. 
+
+We used PostgreSQL extension PgRouting running on the top of PostGIS. PgRouting uses map as an directed/undirected graph and performs routing operations using known graph algorithms available as functions. We used Dijkstra's algorithm.
+
+**Queries:**
+
+We splitted query to two for readability:
+
+1. Selecting points of interest - first we want to get start, middleman and destination.
+
+```sql
+SELECT jsonb_build_object(
+    'type', 'FeatureCollection',
+	'features', jsonb_agg(feature)
+	  )
+FROM (SELECT jsonb_build_object(
+			  'type', 'Feature',
+			  'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
+			  'properties', jsonb_strip_nulls(jsonb_build_object(
+											  'name', name,
+											  'vertex_id', vertex_id
+											  ))
+								 ) AS feature
+	  FROM (select distinct ON (point.name) point.name,
+														st_transform(point.way, 4326) as way,
+														vertices.id as vertex_id,
+														point.osm_id
+					from planet_osm_point as point
+							JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+				    where (name) = 'src'
+					    or (name) = 'stop'
+						or (name) = 'dst') inputs) features;
+```
+
+
+2. Path finding - here we perform path finding using PgRouting - POI selected above are used here.
+
+```sql
+select ST_AsGeoJSON(st_union((merged_route.the_geom)))
+from (SELECT ways.the_geom
+			from pgr_dijkstra('SELECT gid as id, source, target,
+							 length as cost FROM ways',
+												src_id,
+		stop_id,
+		directed := false) src_stop_dij
+			 JOIN ways ON (src_stop_dij.edge = ways.gid)
+union
+SELECT ways.the_geom
+from pgr_dijkstra('
+                SELECT gid as id, source, target,
+                        length as cost FROM ways',
+									stop_id,
+		dst_id,
+		directed := false
+		) stop_dst_dij
+		JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
+```
+
+### 3. Earthquakes in Italy
+
+
+
+Following query visualises eartquakes  that hit Italy between August and November 2016as a heatmap (see List of datasets).
+
+Although query seems to be quite simple, visualisation looks pretty neat and because of that we decided to keep it here. We slightly cleaned our data (removed unnecessary columns).
+
+**Query:**
+
+```sql
+SELECT jsonb_build_object(
+  'type',     'FeatureCollection',
+  'features', jsonb_agg(feature)
+)
+FROM (
+  SELECT jsonb_build_object(
+    'type',       'Feature',
+    'geometry',   ST_AsGeoJSON(ST_Transform(geom,4326))::jsonb,
+    'properties', jsonb_strip_nulls(jsonb_build_object(
+   		'magnitude', magnitude
+
+  ))
+  ) AS feature
+  FROM (
+    SELECT magnitude,geom FROM italy
+  ) inputs
+) features
+```
+
+### 4. Crime in London
+
+Crime map of London (see List of datasets). We focused on 3 boroughs w/ the highest criminality rate:
+      
+1. London Borough of Camden
+2. City of Westminster
+3. London Borough of Lambeth
+
+User can choose type of criminal activity visualised and area of interest (borough).
+
+### 5. Bridges crossing River Thames
+
+This query highlights all bridges crossing River Thames and computes each one's length. Name and length of particular bridge is visible after click.
+
+We compute the length directly in our query (results aren't always perfect due to incompletion of OSM data used). 
+
+**Query:**
+
+```sql
+with river_thames as (select st_union(way) as way from planet_osm_line where waterway = 'river'
+																		 and name = 'River Thames')
+SELECT jsonb_build_object(
+    'type', 'FeatureCollection',
+	'features', jsonb_agg(feature)
+	)
+FROM (SELECT jsonb_build_object(
+	      'type', 'Feature',
+		  'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+		  'properties', jsonb_strip_nulls(jsonb_build_object(
+											  'name', name,
+											  'len', len
+											  )
+						  )
+		  ) AS feature
+    FROM (select (array_agg(line.way)) [ 1 ] as geom,
+									 line.name,
+									 (array_agg(st_length(st_transform(line.way, 4326) :: geography))) [ 1 ] as len
+						from planet_osm_line line,
+							river_thames
+		  where st_intersects(line.way, river_thames.way)
+		      and bridge = 'yes'
+			  and lower(name) like '%bridge%'
+			  and lower(name) not like '%railway%'
+		  group by line.name) inputs) features;
+```
