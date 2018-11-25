@@ -112,22 +112,22 @@ SELECT jsonb_build_object(
 	'features', jsonb_agg(feature)
 	  )
 FROM (SELECT jsonb_build_object(
-			  'type', 'Feature',
-			  'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
-			  'properties', jsonb_strip_nulls(jsonb_build_object(
-											  'name', name,
-											  'vertex_id', vertex_id
-											  ))
-								 ) AS feature
+          'type', 'Feature',
+		  'geometry', ST_AsGeoJSON(ST_Transform(way, 4326)) :: jsonb,
+		  'properties', jsonb_strip_nulls(jsonb_build_object(
+										'name', name,
+										'vertex_id', vertex_id
+										 ))
+						  ) AS feature
 	  FROM (select distinct ON (point.name) point.name,
-														st_transform(point.way, 4326) as way,
-														vertices.id as vertex_id,
-														point.osm_id
-					from planet_osm_point as point
-							JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
-				    where (name) = 'src'
-					    or (name) = 'stop'
-						or (name) = 'dst') inputs) features;
+										    st_transform(point.way, 4326) as way,
+											vertices.id as vertex_id,
+											point.osm_id
+			  from planet_osm_point as point
+				  JOIN ways_vertices_pgr as vertices ON (point.osm_id = vertices.osm_id)
+				where (name) = 'src'
+					or (name) = 'stop'
+					or (name) = 'dst') inputs) features;
 ```
 
 
@@ -136,7 +136,7 @@ FROM (SELECT jsonb_build_object(
 ```sql
 select ST_AsGeoJSON(st_union((merged_route.the_geom)))
 from (SELECT ways.the_geom
-			from pgr_dijkstra('SELECT gid as id, source, target,
+    from pgr_dijkstra('SELECT gid as id, source, target,
 							 length as cost FROM ways',
 												src_id,
 		stop_id,
@@ -156,9 +156,12 @@ from pgr_dijkstra('
 
 ### 3. Earthquakes in Italy
 
+![](uc_3.gif)
 
 
-Following query visualises eartquakes  that hit Italy between August and November 2016as a heatmap (see List of datasets).
+Following query is a visualisation of all earthquakes that hit Italy between August and November 2016 (see List of 
+datasets). Not only are you able to see the distribution of earhquakes but after proper zoom you can also spot a 
+magnitude of particular earthquake.
 
 Although query seems to be quite simple, visualisation looks pretty neat and because of that we decided to keep it here. We slightly cleaned our data (removed unnecessary columns).
 
@@ -186,6 +189,8 @@ FROM (
 
 ### 4. Crime in London
 
+![](uc_4.gif)
+
 Crime map of London (see List of datasets). We focused on 3 boroughs w/ the highest criminality rate:
       
 1. London Borough of Camden
@@ -195,6 +200,8 @@ Crime map of London (see List of datasets). We focused on 3 boroughs w/ the high
 User can choose type of criminal activity visualised and area of interest (borough).
 
 ### 5. Bridges crossing River Thames
+
+![](uc_5.gif)
 
 This query highlights all bridges crossing River Thames and computes each one's length. Name and length of particular bridge is visible after click.
 

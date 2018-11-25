@@ -95,12 +95,9 @@ function initMap(lat, lng, zoom) {
         zoom: 10// starting zoom
     });
 
-    map.addControl(new mapboxgl.GeolocateControl({
-        positionOptions: {
-            enableHighAccuracy: true
-        },
-        trackUserLocation: true
-    }));
+
+
+    map.addControl(new mapboxgl.NavigationControl());
 
 
     document.getElementById('zoomlevel').innerHTML = map.getZoom();
@@ -637,7 +634,7 @@ function thamesBridgesJS() {
 
         map.flyTo({
             center: [-0.21744179493470028, 51.47596429713249],
-            zoom: 10.826985437949697
+            zoom: 11.826985437949697
         });
 
         // console.log('data JSON: ' + JSON.stringify(geojson));
