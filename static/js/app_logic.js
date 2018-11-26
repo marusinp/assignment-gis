@@ -96,7 +96,6 @@ function initMap(lat, lng, zoom) {
     });
 
 
-
     map.addControl(new mapboxgl.NavigationControl());
 
 
@@ -229,7 +228,8 @@ function radiusJS() {
     var requestData = {
         "lat": lat,
         "lng": lng,
-        "radius": $("#radiusTextField").val()
+        "radius": $("#radiusTextField").val(),
+       "amenity": $("#amenityList").val()
     };
 
     console.log("DATA  REQ " + JSON.stringify(requestData));
@@ -425,10 +425,10 @@ function heatmapItalyJS() {
 function heatmapLondonJS() {
 
     mapCleanUp();
-    var borough = $("#boroughList").val();
+
     var requestData = {
         "crime_type": $("#crimeTypeList").val(),
-        "borough": borough
+        "borough": $("#boroughList").val()
     };
     var coords, zoom;
     if (borough === 'London Borough of Lambeth') {

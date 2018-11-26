@@ -165,7 +165,8 @@ def radius():
 	logger.debug(request.data)
 	lat = request.args.get('lat')
 	lng = request.args.get('lng')
-	radius = request.args.get('radius')
+	radius_val = request.args.get('radius')
+	amenity = request.args.get('amenity')
 
 	logger.debug("lat: " + str(lat))
 
@@ -176,7 +177,7 @@ def radius():
 	cur.execute("""
 	with poi as (
 	SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
-    where amenity = 'cafe'
+    where amenity = '{amenity}'
     and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint({lng}, {lat}), 4326)::geography, {radius})
 )
 SELECT jsonb_build_object(
@@ -202,7 +203,7 @@ SELECT jsonb_build_object(
   ) AS feature
   FROM poi
   ) features;
-""".format(lat=lat, lng=lng, radius=radius))
+""".format(amenity=amenity,lat=lat, lng=lng, radius=radius_val))
 
 	rows = cur.fetchall()
 
@@ -376,7 +377,6 @@ def get_title_page():
 def connect_to_db(db_name):
 	try:
 		conn = psycopg2.connect(dbname=db_name, host='localhost', port=5432, user='pmarusin', password='')
-
 	except:
 		logging.error("I am unable to connect to the database")
 
