@@ -37,8 +37,10 @@ We focused on queries somehow related to everyday life in the big city:
 
 **List of datasets:** 
 
-* [Italy's Earthquakes](https://www.kaggle.com/blackecho/italy-earthquakes) - data about the earthquakes that hit Italy between August and November 2016.
-* [London Police Records](https://www.kaggle.com/sohier/london-police-records/) - complete snapshot of crime, outcome, and stop and search data, as held by the Home Office from late 2014 through mid 2017 for London, both the greater metro and the city.
+* [Italy's Earthquakes](https://www.kaggle.com/blackecho/italy-earthquakes) - data about the earthquakes that hit Italy 
+between August and November 2016.
+* [London Police Records](https://www.kaggle.com/sohier/london-police-records/) - complete snapshot of crime, outcome, 
+and stop and search data, as held by the Home Office from late 2014 through mid 2017 for London, both the greater metro and the city.
  
 **Technologies & tools used:**
 
@@ -48,7 +50,7 @@ We focused on queries somehow related to everyday life in the big city:
 * [osm2pgsql](https://github.com/openstreetmap/osm2pgsql) - import tool for loading OpenStreetMap data into PostgreSQL
 * [osm2pgrouting](https://github.com/pgRouting/osm2pgrouting)- import tool for OpenStreetMap data to pgRouting database.
 
-### Queries presented
+### Usecases
  
 #### 1. Display nearby cafés
 
@@ -90,15 +92,18 @@ SELECT jsonb_build_object(
   ) features;
 ``` 
 
-### 2. Route planner for a trip in London (routing w/ a middleman)
+#### 2. Route planner for a trip in London (routing w/ a middleman)
 
+![](uc_2.gif)
 
+Following query finds the shortest path from start to finish that includes one stop. You can select each road node from 
+the lists bellow. 
 
-Following query finds the shortest path from start to finish that includes one stop. You can select each road node from the lists bellow. 
+We implemented shortest path search w/ a middleman - final path includes not only  points A (start) and B (destination), 
+but also point C, lying on the route somewhere. 
 
-We implemented shortest path search w/ a middleman - final path includes not only  points A (start) and B (destination), but also point C, lying on the route somewhere. 
-
-We used PostgreSQL extension PgRouting running on the top of PostGIS. PgRouting uses map as an directed/undirected graph and performs routing operations using known graph algorithms available as functions. We used Dijkstra's algorithm.
+We used PostgreSQL extension PgRouting running on the top of PostGIS. PgRouting uses map as an directed/undirected graph 
+and performs routing operations using known graph algorithms available as functions. We used Dijkstra's algorithm.
 
 **Queries:**
 
@@ -154,7 +159,7 @@ from pgr_dijkstra('
 		JOIN ways ON (stop_dst_dij.edge = ways.gid)) merged_route;
 ```
 
-### 3. Earthquakes in Italy
+#### 3. Earthquakes in Italy
 
 ![](uc_3.gif)
 
@@ -163,7 +168,8 @@ Following query is a visualisation of all earthquakes that hit Italy between Aug
 datasets). Not only are you able to see the distribution of earhquakes but after proper zoom you can also spot a 
 magnitude of particular earthquake.
 
-Although query seems to be quite simple, visualisation looks pretty neat and because of that we decided to keep it here. We slightly cleaned our data (removed unnecessary columns).
+Although query seems to be quite simple, visualisation looks pretty neat and because of that we decided to keep it here. 
+We slightly cleaned our data (removed unnecessary columns).
 
 **Query:**
 
@@ -187,7 +193,7 @@ FROM (
 ) features
 ```
 
-### 4. Crime in London
+#### 4. Crime in London
 
 ![](uc_4.gif)
 
@@ -199,11 +205,35 @@ Crime map of London (see List of datasets). We focused on 3 boroughs w/ the high
 
 User can choose type of criminal activity visualised and area of interest (borough).
 
-### 5. Bridges crossing River Thames
+**Query:**
+
+```sql
+with borough as (select st_transform(way, 4326) as geom from planet_osm_polygon where name = 'borough')
+SELECT jsonb_build_object(
+				 'type', 'FeatureCollection',
+				 'features', jsonb_agg(feature)
+					 )
+FROM (SELECT jsonb_build_object(
+							 'type', 'Feature',
+							 'geometry', ST_AsGeoJSON(ST_Transform(geom, 4326)) :: jsonb,
+							 'properties', jsonb_strip_nulls(jsonb_build_object(
+																								 'crime_type', crime_type,
+																								 'crime_type_count', crime_type_count
+																									 ))
+								 ) AS feature
+			FROM (SELECT crime_records.geom, crime_type, count(crime_type) as crime_type_count
+						FROM crime_records
+									 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+						where crime_type = 'crime_type'
+						group by crime_records.geom, crime_type) inputs) features;
+```
+
+#### 5. Bridges crossing River Thames
 
 ![](uc_5.gif)
 
-This query highlights all bridges crossing River Thames and computes each one's length. Name and length of particular bridge is visible after click.
+This query highlights all bridges crossing River Thames and computes each one's length. Name and length of particular 
+bridge is visible after click.
 
 We compute the length directly in our query (results aren't always perfect due to incompletion of OSM data used). 
 
@@ -236,3 +266,69 @@ FROM (SELECT jsonb_build_object(
 			  and lower(name) not like '%railway%'
 		  group by line.name) inputs) features;
 ```
+
+### Performance
+
+We analyzed performace and speed of our queries. Indexes were used only if cost difference was significant. Bellow are 
+few queries along with cost before and after indexing. 
+
+We used GIST indexes only. In case of PgRouting indexes were already created by osm2pgrouting import tool. 
+
+Snippets below show only indexes that significantly improved performance, not all indexes analyzed.
+
+```sql
+CREATE INDEX if not exists gist_geom_crime_records
+	ON crime_records
+	USING GIST (st_transform(geom, 4326));
+	
+-- w/o index
+-- Startup Cost: 2448581.93
+-- Total Cost: 2448636.21
+
+-- w/ index
+-- Startup Cost: 48097.96
+-- Total Cost: 48152.24
+
+explain (format yaml, analyze true)
+
+with borough as (select st_transform(way, 4326) as geom
+								 from planet_osm_polygon
+								 where name = 'London Borough of Lambeth')
+SELECT crime_records.geom, count(crime_type) as crime_type_count
+FROM crime_records
+			 join borough on st_contains(borough.geom, st_transform(crime_records.geom, 4326))
+group by crime_records.geom;
+```
+
+```sql
+CREATE INDEX gist_geog_point
+	ON planet_osm_point
+	USING GIST (geography(st_transform(way, 4326)));
+
+-- w/o index 	
+-- Startup Cost: 0.00
+-- Total Cost: 32853.76
+
+-- w/ index
+-- Startup Cost: 737.51
+-- Total Cost: 8113.15
+
+explain (format yaml, analyze true)
+SELECT name,
+			 osm_id,
+			 way,
+			 "addr:street",
+			 "addr:housenumber",
+			 operator,
+			 website,
+			 outdoor_seating,
+			 internet_access,
+			 smoking,
+			 opening_hours
+FROM planet_osm_point
+where amenity = 'cafe'
+	and ST_DWithin(st_transform(way, 4326) :: geography,
+								 ST_SetSRID(ST_MakePoint(17.1061116, 48.14498859990289), 4326) :: geography,
+								 5000);
+```
+
