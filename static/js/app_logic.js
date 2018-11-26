@@ -9,6 +9,8 @@ var shownLayers = [];
 var shownSources = [];
 var shownMarkers = [];
 
+var locSelected = false;
+
 var crimeColorMap = {
     'Bicycle theft': '#3bb2d0',
     'Anti-social behaviour': '#fbb03b',
@@ -55,6 +57,7 @@ function mapCleanUp(excludeFlag) {
 
     shownLayers = [];
     shownSources = [];
+    locSelected = false;
 
 }
 
@@ -218,67 +221,72 @@ function radiusPickLocJS() {
 
     map.getCanvas().style.cursor = 'crosshair';
     map.on('click', pickLocHook);
+    locSelected = true;
 
 }
 
 function radiusJS() {
+    if (locSelected === false) {
+        alert("Please select location first.");
+    } else {
 
-    mapCleanUp("marker-loc");
+        mapCleanUp("marker-loc");
 
-    var requestData = {
-        "lat": lat,
-        "lng": lng,
-        "radius": $("#radiusTextField").val(),
-       "amenity": $("#amenityList").val()
-    };
+        var requestData = {
+            "lat": lat,
+            "lng": lng,
+            "radius": $("#radiusTextField").val(),
+            "amenity": $("#amenityList").val()
+        };
 
-    console.log("DATA  REQ " + JSON.stringify(requestData));
-    $.ajax({
-        url: "/radius",
-        data: requestData,
-        datatype: 'json',
-        type: "GET"
-    }).done(function (data) {
+        console.log("DATA  REQ " + JSON.stringify(requestData));
+        $.ajax({
+            url: "/radius",
+            data: requestData,
+            datatype: 'json',
+            type: "GET"
+        }).done(function (data) {
 
-        map.flyTo({
-            center: [lng, lat],
-            zoom: 15
+            map.flyTo({
+                center: [lng, lat],
+                zoom: 15
+            });
+
+
+            var geojson = JSON.parse(data);
+            console.log(JSON.stringify(geojson));
+
+            geojson.features.forEach(function (marker) {
+
+                // create a HTML element for each feature
+                var el = document.createElement('div');
+                el.className = 'marker';
+
+                // make a marker for each feature and add to the map
+                marker = new mapboxgl.Marker(el)
+                    .setLngLat(marker.geometry.coordinates)
+                    .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
+                        .setHTML(fillPopup(marker.properties)))
+                    .addTo(map);
+                shownMarkers.push(marker);
+            });
+
+
+            // map.addSource("polygon", createGeoJSONCircle([lng, lat], 1));
+            //
+            // map.addLayer({
+            //     "id": "polygon",
+            //     "type": "fill",
+            //     "source": "polygon",
+            //     "layout": {},
+            //     "paint": {
+            //         "fill-color": "blue",
+            //         "fill-opacity": 0.6
+            //     }
+            // });
+
         });
-
-
-        var geojson = JSON.parse(data);
-        console.log(JSON.stringify(geojson));
-
-        geojson.features.forEach(function (marker) {
-
-            // create a HTML element for each feature
-            var el = document.createElement('div');
-            el.className = 'marker';
-
-            // make a marker for each feature and add to the map
-            marker = new mapboxgl.Marker(el)
-                .setLngLat(marker.geometry.coordinates)
-                .setPopup(new mapboxgl.Popup({offset: 75}) // add popups
-                    .setHTML(fillPopup(marker.properties)))
-                .addTo(map);
-            shownMarkers.push(marker);
-        });
-
-
-        // map.addSource("polygon", createGeoJSONCircle([lng, lat], 1));
-        //
-        // map.addLayer({
-        //     "id": "polygon",
-        //     "type": "fill",
-        //     "source": "polygon",
-        //     "layout": {},
-        //     "paint": {
-        //         "fill-color": "blue",
-        //         "fill-opacity": 0.6
-        //     }
-        // });
-
-    });
+    }
 }
 
 function heatmapItalyJS() {
