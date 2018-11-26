@@ -433,10 +433,10 @@ function heatmapItalyJS() {
 function heatmapLondonJS() {
 
     mapCleanUp();
-
+    var borough = $("#boroughList").val();  
     var requestData = {
         "crime_type": $("#crimeTypeList").val(),
-        "borough": $("#boroughList").val()
+        "borough": borough
     };
     var coords, zoom;
     if (borough === 'London Borough of Lambeth') {
