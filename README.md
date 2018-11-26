@@ -23,17 +23,15 @@ Build a map-based application, which lets the user see geo-based data on a map a
 
 **Application description**: Web-based application demonstrating advanced geospatial queries (result visualisation included).
 
+### List of usecases covered:
+
 We focused on queries somehow related to everyday life in the big city:
+
 1. Find all near-by cafés :coffee: and/or restaurants :ramen: (based  on current position or position chosen by user).
 2. Find shortest path from dorm to work that includes chosen cafe (mornings are tough and cocaine illegal :pig_nose: ).
 3. Earthquake heatmap of Italy (part of everyday life in Italy, sorta).
 4. Criminality map of London :guardsman: - some interesting correlations (thug life in tha bloody UK 🇬🇧).
 5. Find every bridge crossing River Thames :ship: located in London :pushpin: and calculate its length.
-
-### List of usecases covered:
-
-// other usecases may appear occasionally :bust_in_silhouette: :eyes: 
-
 
 **List of datasets:** 
 
