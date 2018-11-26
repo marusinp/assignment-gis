@@ -172,7 +172,8 @@ def radius():
 
 	cur = connect_to_db('gis')
 
-	cur.execute("""CREATE INDEX if not exists gist_geog_point ON planet_osm_point USING GIST (geography(st_transform(way,4326)));""")
+	cur.execute(
+		"""CREATE INDEX if not exists gist_geog_point ON planet_osm_point USING GIST (geography(st_transform(way,4326)));""")
 
 	cur.execute("""
 	with poi as (
@@ -203,7 +204,7 @@ SELECT jsonb_build_object(
   ) AS feature
   FROM poi
   ) features;
-""".format(amenity=amenity,lat=lat, lng=lng, radius=radius_val))
+""".format(amenity=amenity, lat=lat, lng=lng, radius=radius_val))
 
 	rows = cur.fetchall()
 

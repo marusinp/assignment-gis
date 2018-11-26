@@ -52,11 +52,11 @@ and stop and search data, as held by the Home Office from late 2014 through mid 
 
 ### Usecases
  
-#### 1. Display nearby cafés
+#### 1. Display nearby cafés/restaurants
 
 ![](uc_1.gif)
 
-Insert distance (in meters). After submission you'll see all nearby cafés within inserted radius. 
+Insert distance (in meters). After submission you'll see all nearby cafés/restaurants within inserted radius. 
 You can then select any of them for more information by clicking on the marker.
 
 **Query:**
@@ -64,7 +64,7 @@ You can then select any of them for more information by clicking on the marker.
 ```sql
 with poi as (
     SELECT name, osm_id, way, "addr:street", "addr:housenumber",operator,website,outdoor_seating, internet_access,smoking,opening_hours FROM planet_osm_point
-    where amenity = 'cafe'
+    where amenity = 'amenity'
     and ST_DWithin(st_transform(way,4326)::geography, ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography, radius)
 )
 SELECT jsonb_build_object(
